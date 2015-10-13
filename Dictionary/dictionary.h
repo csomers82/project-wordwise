@@ -2,7 +2,8 @@
 #ifndef DICTIONARY_H
 #define DICTIONARY_H
 
-#include <stdin.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -17,7 +18,7 @@ typedef struct Dictionary {
 	char ** hash_table;// the dictionary data in a char* array
 	int max_size;// the number of dictionary entries max
 	int cur_size;// the number of entries already stored
-	int (*hash_func)(char***, char *);// ptr to the dictionary's method of i/o
+	int (*hash_func)(const char*, int);// ptr to the dictionary's method of i/o
 	float threshold;// the percentage of the table that needs to be full in order to realloc
 	float growth_factor;// the ratio of oldSize-to-newSize memory when reallocating table
 } Dictionary;
@@ -39,13 +40,13 @@ Dictionary * dictionary_create(int max, float threshold, float growth_factor);
 //	in:		int (*hash_fx_ptr)(char*, int) = hash fx that accepts a str and a max tbl size
 //			Dictionary * dn = dictionary target of initalization
 //
-void		 dictionary_initialize(int (*hash_fx_ptr)(char*, int), Dictionary * dn);
+void dictionary_initialize(int (*hash_fx_ptr)(const char*, int), Dictionary * dn);
 
 ///
 //	Frees all of the associated memory in the Dictionary
 //	in:		Dictionary * dn = vic of 'free'
 //
-void		 dictionary_free(Dictionary * dn);
+void dictionary_free(Dictionary * dn);
 
 ///
 //	Rehashes the data of the old dictionary to a new dictionary
@@ -54,13 +55,22 @@ void		 dictionary_free(Dictionary * dn);
 //
 Dictionary * dictionary_grow(Dictionary * dn);
 
+
 ///
-//	Gives a ptr to the dictionary entry that matches the str, or NULL if np
+//	Hashes a single string, preserving the ptr, into the dicitonary's hash table
+//	in:		Dictionary * dn = storage for string
+//			const char * str = entry being stored 
+//
+void dictionary_add_entry(Dictionary * dn, const char * str);
+
+
+///
+//	Gives a ptr to the dictionary entry that matches the query, or NULL if np
 //	in:		Dictionary * dn = the dictionary being searched
-//			char * str = the string being searched
+//			char * query = the string being searched
 //	out:	char * found = the char ptr or NULL if not found
 //
-char *		 dictionary_search(Dictionary * dn, char * str);
+char * dictionary_search(Dictionary * dn, char * query);
 
 ///
 //	Takes two dictionary structs and combines their tables into a single table w/ all of the 
@@ -90,19 +100,19 @@ int			 dictionary_write(Dictionary * dn);
 /* Hashing and Collision Control */
 ///
 //	Sum char values as integers, modulo table size
-//	in:		char * str = data being hashed
+//	in:		const char * str = data being hashed
 //			int max_tbl_size = max not current table size
 //	out:	int index = integer hash value
 //
-int			 hash_0_char_sum(char * str, int max_tbl_size);
+int	hash_0_char_sum(const char * str, int max_tbl_size);
 
 ///
 //	Multiply's strlen(str) by percentage of max_tbl_size, add char sum, modulo max_tbl_size
-//	in:		char * str = data being hashed
+//	in:		const char * str = data being hashed
 //			int max_tbl_size = max not current table size
 //	out:	int index = integer hash value
 //
-int			 hash_1_str_len(char * str, int max_tbl_size);
+int hash_1_str_len(const char * str, int max_tbl_size);
 
 
 
