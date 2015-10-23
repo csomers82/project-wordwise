@@ -133,7 +133,7 @@ void dictionary_add_entry(Dictionary * dn, const char * str)
 	//EXECUTABLE STATEMENTS
 	hfunc = dn->hash_func;
 	
-	//reshash any previous data (new table already initialized)
+	//dereference the hash table data
 	data = (dn->hash_table);
 	
 	//rehash location in new table
@@ -151,7 +151,7 @@ void dictionary_add_entry(Dictionary * dn, const char * str)
 	dn->cur_size += 1;
 
 	volume = dn->cur_size * 100.0f / dn->max_size;
-	printf("percentage full = %f%%\n", volume);
+	//printf("percentage full = %f%%\n", volume);
 	if(volume >= dn->threshold)
 	{	printf("\e[32mTable expanded\e[0m\n");
 		Dictionary * new = dictionary_grow(dn);
