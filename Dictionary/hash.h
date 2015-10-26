@@ -6,8 +6,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <inttypes.h>
 
-
+#define INTEGER_MAX 2147483647
 
 
 /* Hashing and Collision Control 

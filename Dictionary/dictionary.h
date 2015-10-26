@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <inttypes.h>
+#include <time.h>
 
 /*
  * This is a file to create static and dynamic hash tables and basic
@@ -13,40 +15,92 @@
  *
  */
 
+// FERMOT's FINAL PROOF
+// proof with most attempts and failures thatn any other
+// tree - ways possible to win
+
+/* Bit Masks */
+#define BITMASK_DATA_TABLE		0x0000000F 
+#define BITMASK_DATA_TREE		0x000000F0
+#define BITMASK_DATA_STORAGE	0x000000FF
+#define BITMASK_HASH_PRIMARY	0x0000FF00
+#define BITMASK_HASH_SECONDARY	0x00FF0000
+
+
 /* Structures */
 typedef struct Dictionary {
+	uint32_t config;// a bitpacked boolean value representing the Dictionary's configuration
 	char ** hash_table;// the dictionary data in a char* array
+	void * tree_head;// the dictionary data as a node* tree 
 	int max_size;// the number of dictionary entries max
 	int cur_size;// the number of entries already stored
-	int (*hash_func)(const char*, int);// ptr to the dictionary's method of i/o
+	int (*hash_func)(const char*, int max);// ptr to the dictionary's method of i/o
+	int (*hash_second)(const char*, int max, int probe, int attempt);// ptr to the dictionary's method of rehashinrehashingg
+	long t_entry_collisions;// sum of all entry collions
+	long t_search_collisions;// sum of all collisions when searching
+	int t_hash_searches;// number of searches admistered via hash table
 	float threshold;// the percentage of the table that needs to be full in order to realloc
 	float growth_factor;// the ratio of oldSize-to-newSize memory when reallocating table
+	float avg_entry_collisions;// t_entry_c / cur_size
+	float avg_search_collisions;// t_search_C / cur_size
 } Dictionary;
 
 
 /* Dictionary Struct Function Tools */
 
+
+///
+//	packs various values into an int so that less parameters
+//	require being passed into creating the dictionary
+//	in:		int tree_num	= 0 or index of dicitonary tree struct
+//			int table_num	= 0 or index of dicitonary table struct
+//			int hash_num	= 0 or index of the hash function
+//			int rehash_num	= 0 or index of the rehash function
+//	out:	uint32_t config = packed configuration value
+//
+uint32_t dictionary_config(int table_num, int tree_num, int hash_num, int rehash_num);
+
+
+
 ///
 //	Allocates a new unitialized Dictionary Struct 
 //	in:		int max = the max table size
-//			flaot threshold = percentage of currSize-to-maxSize that triggers reallocation
-//			float growth_factor = ratio of the oldTable-to-newTable when reallocating
+//			uint32_t = storage of how the dictionary will be configured
 //	out:	Dictionary * new 
 //
-Dictionary * dictionary_create(int max, float threshold, float growth_factor);
+Dictionary * dictionary_create(int max, uint32_t config );
 
 ///
 //	Gives a newly allocated Dictionary a hash fx
-//	in:		int (*hash_fx_ptr)(char*, int) = hash fx that accepts a str and a max tbl size
+//	in:		
 //			Dictionary * dn = dictionary target of initalization
+//			float threshold = percentage of currSize-to-maxSize that triggers reallocation
+//			float growth_factor = ratio of the oldTable-to-newTable when reallocating
 //
-void dictionary_initialize(int (*hash_fx_ptr)(const char*, int), Dictionary * dn);
+void dictionary_initialize(Dictionary * dn, float threshold, float growth_factor);
+
+
+///
+//	Appends the dicitonaries statistics to the logfile
+//
+void dictionary_log_statistics(Dictionary * dn);
+
+
 
 ///
 //	Frees all of the associated memory in the Dictionary
 //	in:		Dictionary * dn = vic of 'free'
 //
 void dictionary_free(Dictionary * dn);
+
+///
+//	Finds a valid table index given a string key
+//	in:		Dictionary * dn = where the data an be found
+//			const char * str = entry to be probed
+//	out:	int position = final resing place of string
+//
+int dictionary_probe_table(Dictionary * dn, const char * str);
+
 
 ///
 //	Rehashes the data of the old dictionary to a new dictionary
@@ -62,7 +116,6 @@ Dictionary * dictionary_grow(Dictionary * dn);
 //			const char * str = entry being stored 
 //
 void dictionary_add_entry(Dictionary * dn, const char * str);
-
 
 ///
 //	Gives a ptr to the dictionary entry that matches the query, or NULL if np
