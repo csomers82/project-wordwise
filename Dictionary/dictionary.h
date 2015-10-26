@@ -19,6 +19,8 @@
 // proof with most attempts and failures thatn any other
 // tree - ways possible to win
 
+#define LOG_FILE_NAME "dn.log"
+
 /* Bit Masks */
 #define BITMASK_DATA_TABLE		0x0000000F 
 #define BITMASK_DATA_TREE		0x000000F0
@@ -43,6 +45,7 @@ typedef struct Dictionary {
 	float growth_factor;// the ratio of oldSize-to-newSize memory when reallocating table
 	float avg_entry_collisions;// t_entry_c / cur_size
 	float avg_search_collisions;// t_search_C / cur_size
+	FILE * logfile;// collects the statistic of the tree in question
 } Dictionary;
 
 
