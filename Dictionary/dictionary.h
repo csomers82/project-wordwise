@@ -45,7 +45,7 @@ typedef struct Dictionary {
 	float growth_factor;// the ratio of oldSize-to-newSize memory when reallocating table
 	float avg_entry_collisions;// t_entry_c / cur_size
 	float avg_search_collisions;// t_search_C / cur_size
-	FILE * logfile;// collects the statistic of the tree in question
+	char * logfile;// collects the statistic of the tree in question
 } Dictionary;
 
 

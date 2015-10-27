@@ -85,8 +85,9 @@ Dictionary * dictionary_create(int max, uint32_t config)
 	new->t_hash_searches = 0;
 	new->avg_entry_collisions = 0.0f;
 	new->avg_search_collisions = 0.0f;
+	new->logfile = LOG_FILE_NAME;
 	/// default values if not initialized
-	new->threshhold = 75.0f;//%
+	new->threshold = 75.0f;//%
 	new->growth_factor = 1.618033f;//phi
 	new->hash_table = NULL;
 	new->tree_head = NULL;
@@ -148,51 +149,74 @@ void dictionary_initialize(Dictionary * dn, float threshold, float growth_factor
 void dictionary_log_statistics(Dictionary * dn)
 {
 	//local variables
-	FILE * log = dn->logfile;
+	FILE * log = fopen(dn->logfile, "a");
 	char * title = "HASH TABLE LOG";
 	char * sect1 = "TABLE FIELDS";
 	char * sect2 = "ENTRY COLLISIONS";
 	char * sect3 = "SEARCH COLLISIONS";
-	const time_t log_time;
+	time_t log_time;
 	int i;
-	char b = ' ';
+	char* b = " ";// blank
 	char banner = '_';
-	int banner_len = 20;
+	int banner_len = 40;
 	int has_table;
 	int has_tree;
+	int fl = banner_len - 8;// field length
+
+	if(!log) 
+	{	fprintf(stderr, "Error: cannot open log file \"%s\"\n", dn->logfile);
+		return;
+	}
 
 	//// HEADER
 	// divider
 	for(i = 0; i < banner_len; ++i)
-		fprintf(log, banner);
-	fprintf("\n");
+		fprintf(log,"%c", banner);
+	fprintf(log, "\n");
 	// title
-	fprintf("%s%s\n", b, title);
+	fprintf(log, "%s%s\n", b, title);
 	/// time stamp
 	log_time = time(NULL);
-	fprintf(log, "%s%s\n", b, ctime(&log_time));
+	fprintf(log, "%s%s", b, ctime(&log_time));
 	// divider
 	for(i = 0; i < banner_len; ++i)
-		fprintf(log, banner);
-	fprintf("\n");
+		fprintf(log,"%c", banner);
+	fprintf(log, "\n");
 
 	//// TABLE FIELDS
-	fprintf("\n%s%s\n", b, sect1);
-	fprintf("\n%2s%16s%d\n", b, "max table size = ", dn->max_size);
-	fprintf("\n%2s%16s%d\n", b, "current table size = ", dn->cur_size);
-	fprintf("\n%2s%16s%6.3f\n", b, "table growth factor = ", dn->growth_factor);
-	fprintf("\n%2s%16s%6.3f\n", b, "percent volume threshhold = ", dn->threshold);
+	fprintf(log, "%s%s\n", b, sect1);
+	fprintf(log, "%2s%.*s%#010X\n", b, fl, "configuration # = ", dn->config);
+	fprintf(log, "%2s%.*s%-16d\n", b, fl, "max table size = ", dn->max_size);
+	fprintf(log, "%2s%.*s%-16d\n", b, fl, "current table size = ", dn->cur_size);
+	fprintf(log, "%2s%.*s%-166.3f\n", b, fl, "table growth factor = ", dn->growth_factor);
+	fprintf(log, "%2s%.*s%-16.3f\n", b, fl, "volume %% threshhold = ", dn->threshold);
+
+	// divider
+	for(i = 0; i < banner_len; ++i)
+		fprintf(log,"%c", banner);
+	fprintf(log, "\n");
 
 	//// ENTRY COLLISIONS
-	fprintf("\n%s%s\n", b, sect2);
+	fprintf(log, "%s%s\n", b, sect2);
+	fprintf(log, "%2s%.*s%-16d\n", b, fl, "number of entries = ", dn->cur_size);
+	fprintf(log, "%2s%.*s%-16li\n", b, fl, "total entry collisions = ", dn->t_entry_collisions);
+	fprintf(log, "%2s%.*s%-16.3f\n", b, fl, "average entry collisions = ", dn->avg_entry_collisions);
 
-	
 	// divider
-	for(i = 0; i < banner_l; ++i)
-		fprintf(log, banner);
-	fprintf("\n");
+	for(i = 0; i < banner_len; ++i)
+		fprintf(log,"%c", banner);
+	fprintf(log, "\n");
+
+	//// SEARCH COLLISIONS
+	fprintf(log, "%s%s\n", b, sect3);
+	fprintf(log, "%2s%.*s%-16d\n", b, fl, "number of searches = ", dn->t_hash_searches);
+	fprintf(log, "%2s%.*s%-16li\n", b, fl, "total search collisions = ", dn->t_search_collisions);
+	fprintf(log, "%2s%.*s%-16.3f\n", b, fl, "average search collisions = ", dn->avg_search_collisions);
+	
+	fprintf(log, "\n");
 
 	
+	fclose(log);	
 }
 
 
@@ -247,7 +271,8 @@ int dictionary_probe_table(Dictionary * dn, const char * str)
 	}
 	//data tracking
 	dn->t_entry_collisions += collisions;
-	dn->avg_entry_collision = dn->cur_size / dn->t_entry_collisions;
+	if(dn->t_entry_collisions)
+		dn->avg_entry_collisions = dn->cur_size / dn->t_entry_collisions;
 
 	return(position);
 }
@@ -382,9 +407,8 @@ char * dictionary_search(Dictionary * dn, char * query)
 	}
 	dn->t_hash_searches += 1;
 	dn->t_search_collisions += collisions;
-	dn->avg_search_collisions = dn->t_hash_searches / dn->t_search_collisions;
-
-	dictionary_log_search();
+	if(dn->t_search_collisions)
+		dn->avg_search_collisions = dn->t_hash_searches / dn->t_search_collisions;
 
 	return(table[probe_i]);
 }
