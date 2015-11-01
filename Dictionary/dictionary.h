@@ -74,6 +74,14 @@ uint32_t dictionary_config(int table_num, int tree_num, int hash_num, int rehash
 Dictionary * dictionary_create(int max, uint32_t config );
 
 ///
+//	Initializes an empty hash table
+//	in:		int max: the number of entries
+//	out:	char** table: hash table that is empty
+//
+char ** hash_table_create(int max);
+
+
+///
 //	Gives a newly allocated Dictionary a hash fx
 //	in:		
 //			Dictionary * dn = dictionary target of initalization
@@ -151,32 +159,7 @@ Dictionary * dictionary_read(FILE * fp);
 //	in:		Dictionionary * dn = target of being written
 //	out:	int success = 0 if true
 //
-int			 dictionary_write(Dictionary * dn);
-
-/* Hashing and Collision Control */
-///
-//	Sum char values as integers, modulo table size
-//	in:		const char * str = data being hashed
-//			int max_tbl_size = max not current table size
-//	out:	int index = integer hash value
-//
-int	hash_0_char_sum(const char * str, int max_tbl_size);
-
-///
-//	Multiply's strlen(str) by percentage of max_tbl_size, add char sum, modulo max_tbl_size
-//	in:		const char * str = data being hashed
-//			int max_tbl_size = max not current table size
-//	out:	int index = integer hash value
-//
-int hash_1_str_len(const char * str, int max_tbl_size);
-
-///
-//	Sum char values as times char position, modulo table size
-//	in:		const char * str = data being hashed
-//			int max_tbl_size = max not current table size
-//	out:	int index = integer hash value
-//
-int hash_2_sum_char_products(const char * str, int max_tbl_size);
+int	dictionary_write(Dictionary * dn);
 
 
 #endif

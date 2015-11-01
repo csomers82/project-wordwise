@@ -91,13 +91,13 @@ int hash_03_base_128(const char * str, int max_tbl_size)
 
 
 int rehash_00_add_one(const char * str, int mts, int prev_hash, int attempt_n)
-{	return(prev_hash + 1);	
+{	return((prev_hash + 1) % mts);	
 }
 
 int rehash_01_add_attempt_sq(const char * str, int mts, int prev_hash, int attempt_n)
-{	return(prev_hash + attempt_n * attempt_n);
+{	return((prev_hash + attempt_n * attempt_n) % mts);
 }
 
 int rehash_02_add_attempt(const char * str, int mts, int prev_hash, int attempt_n)
-{	return(prev_hash + attempt_n);
+{	return((prev_hash + attempt_n) % mts);
 }

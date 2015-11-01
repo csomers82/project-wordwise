@@ -80,12 +80,7 @@ Dictionary * dictionary_create(int max, uint32_t config)
 	/// assign a tree structure for Dictionary use, if apl
 	if(table)
 	{
-		new->hash_table = malloc(sizeof(char*) * max);
-		data = (new->hash_table);
-		for(i = 0; i < max; ++i)
-		{
-			data[i] = NULL;
-		}
+		new->hash_table = hash_table_create(max);
 		new->cur_size = 0;
 	}
 	// assign a hash table array for Dictionary use, if apl
@@ -112,6 +107,24 @@ Dictionary * dictionary_create(int max, uint32_t config)
 	new->hash_func = hashP;
 	new->hash_second = hashS;
 	return(new);
+}
+
+///
+//	Initializes an empty hash table
+//	in:		int max: the number of entries
+//	out:	char** table: hash table that is empty
+//
+char ** hash_table_create(int max)
+{	///LOCAL VARIABLES
+	int slot;
+	char ** table;
+	///EXECUTABLE STATEMENTS
+	table = malloc(sizeof(char *) * max);
+	for(slot = 0; slot < max; ++slot)
+	{
+		table[slot] = NULL;
+	}
+	return table;
 }
 
 ///
@@ -246,11 +259,13 @@ int dictionary_probe_table(Dictionary * dn, const char * str)
 	position = dn->hash_func(str, max);
 	collisions = 0;
 
+	//printf("probei = %d\t", position);
 	//so long as there is data at the desired index, rehash
 	while(data[position] != NULL && collisions < INTEGER_MAX)
 	{	position = rehash(str, max, position, ++collisions);
 		//printf("probe = %i\n", position);
 	}
+	//printf("probef = %d\tmax = %d\n", position, max);
 	//if there were more collisions than max position, signify
 	if(collisions >= max)
 	{	fprintf(stderr, "Excessive collisions.\nmax_size = %d, collisions = %d\n",
@@ -259,8 +274,11 @@ int dictionary_probe_table(Dictionary * dn, const char * str)
 	//data tracking
 	dn->t_entry_collisions += collisions;
 	if(dn->t_entry_collisions)
-		dn->avg_entry_collisions = dn->cur_size / dn->t_entry_collisions;
-
+	{
+		float size = dn->cur_size; 
+		float T_ec = dn->t_entry_collisions;
+		dn->avg_entry_collisions = T_ec / size;
+	}
 	return(position);
 }
 	
@@ -309,12 +327,7 @@ Dictionary * dictionary_grow(Dictionary * dn)
 	dn->avg_entry_collisions = 0.0f;
 
 	//create new hash_table
-	new_table = malloc(sizeof(char*) * max);
-	
-	for(i = 0; i < max; ++i)
-	{
-		new_table[i] = NULL;
-	}
+	new_table = hash_table_create(max);
 
 	//reshash any previous data (new table already initialized)
 	data = (dn->hash_table);
@@ -398,8 +411,11 @@ char * dictionary_search(Dictionary * dn, char * query)
 	dn->t_hash_searches += 1;
 	dn->t_search_collisions += collisions;
 	if(dn->t_search_collisions)
-		dn->avg_search_collisions = dn->t_hash_searches / dn->t_search_collisions;
-
+	{
+		float T_hs = (float)dn->t_hash_searches;
+		float T_sc = (float)dn->t_search_collisions;
+		dn->avg_search_collisions = (T_sc) / (T_hs);
+	}
 	return(table[probe_i]);
 }
 
