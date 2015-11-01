@@ -29,22 +29,6 @@ uint32_t dictionary_config(int table_num, int tree_num, int hash_num, int rehash
 	//// LOCAL DECLARATIONS
 	// Blank Configuration
 	uint32_t config = 0x00000000;
-	/*
-	// Setting Individual Config Parts
-	/ * 'BITMASK_' value is divided by amount of data the section
-	 *	takes so that the result is a 1 in the starting bit of a
-	 *	section of the config value. It is then multiplied by the
-	 *	input number to enable the desired feature. * /
-	uint32_t bitcast_tree = BITMASK_DATA_TREE / 0x0F * tree_num;
-	uint32_t bitcast_table = BITMASK_DATA_TABLE / 0x0F * table_num;
-	uint32_t bitcast_hashP = BITMASK_HASH_PRIMARY / 0xFF * hash_num;
-	uint32_t bitcast_hashS = BITMASK_HASH_PRIMARY / 0xFF * rehash_num;
-	//// UPDATE CONFIGURATION
-	// In this section, due to the val of 'config' += is equivalent to |=
-	config |= bitcast_tree; 
-	config |= bitcast_table; 
-	config |= bitcast_hashP;
-	config |= bitcast_hashS; */
 	
 	//// UPDATE CONFIGURATION
 	// put in the data values and slide the current ones over
@@ -170,6 +154,7 @@ void dictionary_log_statistics(Dictionary * dn)
 
 	//// HEADER
 	// divider
+	fprintf(log, "\n");
 	for(i = 0; i < banner_len; ++i)
 		fprintf(log,"%c", banner);
 	fprintf(log, "\n");
@@ -177,7 +162,7 @@ void dictionary_log_statistics(Dictionary * dn)
 	fprintf(log, "%s%s\n", b, title);
 	/// time stamp
 	log_time = time(NULL);
-	fprintf(log, "%s%s", b, ctime(&log_time));
+	fprintf(log, "%8s%s", b, ctime(&log_time));
 	// divider
 	for(i = 0; i < banner_len; ++i)
 		fprintf(log,"%c", banner);
@@ -185,11 +170,11 @@ void dictionary_log_statistics(Dictionary * dn)
 
 	//// TABLE FIELDS
 	fprintf(log, "%s%s\n", b, sect1);
-	fprintf(log, "%2s%.*s%#010X\n", b, fl, "configuration # = ", dn->config);
-	fprintf(log, "%2s%.*s%-16d\n", b, fl, "max table size = ", dn->max_size);
-	fprintf(log, "%2s%.*s%-16d\n", b, fl, "current table size = ", dn->cur_size);
-	fprintf(log, "%2s%.*s%-166.3f\n", b, fl, "table growth factor = ", dn->growth_factor);
-	fprintf(log, "%2s%.*s%-16.3f\n", b, fl, "volume %% threshhold = ", dn->threshold);
+	fprintf(log, "%2s%28s%#010X\n", b,  "configuration # = ", dn->config);
+	fprintf(log, "%2s%28s%-28d\n", b,  "max table size = ", dn->max_size);
+	fprintf(log, "%2s%28s%-28d\n", b,  "current table size = ", dn->cur_size);
+	fprintf(log, "%2s%28s%-286.3f\n", b,  "table growth factor = ", dn->growth_factor);
+	fprintf(log, "%2s%28s%-28.3f\n", b,  "volume % threshhold = ", dn->threshold);
 
 	// divider
 	for(i = 0; i < banner_len; ++i)
@@ -198,9 +183,9 @@ void dictionary_log_statistics(Dictionary * dn)
 
 	//// ENTRY COLLISIONS
 	fprintf(log, "%s%s\n", b, sect2);
-	fprintf(log, "%2s%.*s%-16d\n", b, fl, "number of entries = ", dn->cur_size);
-	fprintf(log, "%2s%.*s%-16li\n", b, fl, "total entry collisions = ", dn->t_entry_collisions);
-	fprintf(log, "%2s%.*s%-16.3f\n", b, fl, "average entry collisions = ", dn->avg_entry_collisions);
+	fprintf(log, "%2s%28s%-28d\n", b,  "number of entries = ", dn->cur_size);
+	fprintf(log, "%2s%28s%-28li\n", b,  "total entry collisions = ", dn->t_entry_collisions);
+	fprintf(log, "%2s%28s%-28.3f\n", b,  "average entry collisions = ", dn->avg_entry_collisions);
 
 	// divider
 	for(i = 0; i < banner_len; ++i)
@@ -209,9 +194,9 @@ void dictionary_log_statistics(Dictionary * dn)
 
 	//// SEARCH COLLISIONS
 	fprintf(log, "%s%s\n", b, sect3);
-	fprintf(log, "%2s%.*s%-16d\n", b, fl, "number of searches = ", dn->t_hash_searches);
-	fprintf(log, "%2s%.*s%-16li\n", b, fl, "total search collisions = ", dn->t_search_collisions);
-	fprintf(log, "%2s%.*s%-16.3f\n", b, fl, "average search collisions = ", dn->avg_search_collisions);
+	fprintf(log, "%2s%28s%-28d\n", b,  "number of searches = ", dn->t_hash_searches);
+	fprintf(log, "%2s%28s%-28li\n", b,  "total search collisions = ", dn->t_search_collisions);
+	fprintf(log, "%2s%28s%-28.3f\n", b,  "average search collisions = ", dn->avg_search_collisions);
 	
 	fprintf(log, "\n");
 
@@ -250,10 +235,11 @@ int dictionary_probe_table(Dictionary * dn, const char * str)
 	char ** data;// where the probing is concerned
 	int collisions;// the number of attempts
 	unsigned int position;// the final resting point 
-	int max = dn->max_size;// the number of slots in the hash table
+	int max;// the number of slots in the hash table
 	int (*rehash)(const char * str, int max, int k, int attempt_n); 
 
 	////EXECUTABLE STATEMENTS
+	max = dn->max_size;
 	rehash = (dn->hash_second);
 	data = (dn->hash_table);
 
@@ -263,6 +249,7 @@ int dictionary_probe_table(Dictionary * dn, const char * str)
 	//so long as there is data at the desired index, rehash
 	while(data[position] != NULL && collisions < INTEGER_MAX)
 	{	position = rehash(str, max, position, ++collisions);
+		//printf("probe = %i\n", position);
 	}
 	//if there were more collisions than max position, signify
 	if(collisions >= max)
@@ -323,6 +310,7 @@ Dictionary * dictionary_grow(Dictionary * dn)
 
 	//create new hash_table
 	new_table = malloc(sizeof(char*) * max);
+	
 	for(i = 0; i < max; ++i)
 	{
 		new_table[i] = NULL;
@@ -330,6 +318,7 @@ Dictionary * dictionary_grow(Dictionary * dn)
 
 	//reshash any previous data (new table already initialized)
 	data = (dn->hash_table);
+	dn->hash_table = new_table;
 	for(i = 0; i < dn->max_size; ++i)
 	{
 		//if there is an entry at this hash index:
@@ -341,9 +330,9 @@ Dictionary * dictionary_grow(Dictionary * dn)
 		}
 	}
 	//manage data and reassign
-	free(data);
-	dn->hash_table = new_table;
 	dn->max_size = max;
+	free(data);
+	//printall(new_table, max, stdout);
 	return(dn);
 }
 
@@ -372,6 +361,7 @@ void dictionary_add_entry(Dictionary * dn, const char * str)
 	if(volume >= dn->threshold)
 	{	printf("\e[32mTable expanded\e[0m\n");
 		Dictionary * new = dictionary_grow(dn);
+		assert(new != NULL);
 		*dn = *new;
 	}
 }
