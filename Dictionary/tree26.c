@@ -80,7 +80,9 @@ void tree26_destroy(Tree26 * vic)
 	////LOCAL VARIABLES
 	int depth;// depth index for the tree
 	int br_i;// branch number of N_BRANCHES
+	int lbi;// for an easier reference during popping procedure
 	Tree26 * curr;// current node in question
+	Tree26 * last;// for easier reference
 	Tree26 stack[20];// the storage for the previous node "CLRS.pdf"
 	int bri_stack[20];// stores the previous node branch indices in parallel
 	int reset;// control flag
@@ -89,33 +91,44 @@ void tree26_destroy(Tree26 * vic)
 	curr = vic;
 	depth = 0;
 	br_i = 0;
+	stack[depth] = curr;
 	//FIX SO THAT FIRST NODE IS STACK
-	while(!tree26_isempty(curr))
+	while(!tree26_isempty(stack[depth]))
 	{
 		reset = FALSE;
 		//check each branch of the current node
 		while(!reset && br_i < N_BRANCHES)
 		{
-			//case_0: branch has children - push node
+			///case_0: branch has children - push node
 			if(curr->branch[br_i] &&
 			  (!tree26_isempty(curr->branch[br_i])))
 			{
-				stack[depth] = curr;
+				//adjust cur branch index in current stack, push on next
 				bri_stack[depth] = br_i;
-				br_i = -1;// will become 0
 				++depth;
+				stack[depth] = curr;
+				//set cur to new root just found
 				curr = curr->branch[br_i];
+				//reset br_i, will become 0
+				br_i = -1;
 				reset = TRUE;
 			}
 			++br_i;
 		}
-		//case_1: branch is leaf - pop node
+		///case_1: branch is leaf - pop node
 		if(!reset && tree26_isempty(curr))
 		{
 			//free node data
 			free(curr->str);
 			free(curr->branch);
 			free(curr);
+			// deattach last link (not necessary?) 
+			if(depth > 0)
+			{
+				last = stack[depth - 1];
+				lbi = bri_stack[depth - 1];
+				last->branch[lbi] = NULL;
+			}
 			--depth;
 			curr = stack[depth];
 			br_i = bri_stack[depth];
