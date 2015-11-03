@@ -58,14 +58,72 @@ void tree26_insert(Tree26 * root, const char * store)
  *	in:		Tree26 * root: tree source location
  *	out:	int isempty: is 1 if empty or 0 if not empty
  */
-int tree26_isempty(Tree26 * root);
+int tree26_isempty(Tree26 * root)
+{
+	int i;// for iterating through the branches
+	for(i = 0; i < N_BRANCHES; ++i)
+	{	if(root->branch[i]) 
+		{
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
 
 /***
  *	Frees the data associated with the given tree
  *	in:		Tree26 * vic: will be free'd
  *	out:	void
  */
-void tree26_destroy(Tree26 * vic);
+void tree26_destroy(Tree26 * vic)
+{
+	////LOCAL VARIABLES
+	int depth;// depth index for the tree
+	int br_i;// branch number of N_BRANCHES
+	Tree26 * curr;// current node in question
+	Tree26 stack[20];// the storage for the previous node "CLRS.pdf"
+	int bri_stack[20];// stores the previous node branch indices in parallel
+	int reset;// control flag
+	
+	////EXECUTABLE STATEMENTS
+	curr = vic;
+	depth = 0;
+	br_i = 0;
+	//FIX SO THAT FIRST NODE IS STACK
+	while(!tree26_isempty(curr))
+	{
+		reset = FALSE;
+		//check each branch of the current node
+		while(!reset && br_i < N_BRANCHES)
+		{
+			//case_0: branch has children - push node
+			if(curr->branch[br_i] &&
+			  (!tree26_isempty(curr->branch[br_i])))
+			{
+				stack[depth] = curr;
+				bri_stack[depth] = br_i;
+				br_i = -1;// will become 0
+				++depth;
+				curr = curr->branch[br_i];
+				reset = TRUE;
+			}
+			++br_i;
+		}
+		//case_1: branch is leaf - pop node
+		if(!reset && tree26_isempty(curr))
+		{
+			//free node data
+			free(curr->str);
+			free(curr->branch);
+			free(curr);
+			--depth;
+			curr = stack[depth];
+			br_i = bri_stack[depth];
+		}
+	}
+	
+}
+
 
 /***
  *	Removes a single node from the tree *obselete*
