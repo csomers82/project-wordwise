@@ -270,6 +270,7 @@ int dictionary_probe_table(Dictionary * dn, const char * str)
 	if(collisions >= max)
 	{	fprintf(stderr, "Excessive collisions.\nmax_size = %d, collisions = %d\n",
 						dn->max_size, collisions);
+		position = -1;
 	}
 	//data tracking
 	dn->t_entry_collisions += collisions;
@@ -299,6 +300,7 @@ Dictionary * dictionary_grow(Dictionary * dn)
 	int (*hfunc)(const char* search, int max);// a ptr to the hash func
 	int (*rfunc)(const char* search, int max, int probe_i, int attempt_i);// a ptr to the hash func
 	int max;// max size that will be used
+	int old_max;// reference variable for data iteration
 	int collisions;// a count of bad hashes for a str
 	long save_ec;//
 	long save_sc;//
@@ -308,6 +310,7 @@ Dictionary * dictionary_grow(Dictionary * dn)
 	
 	////EXECUTABLE STATEMENTS
 	max = (int)(dn->max_size * dn->growth_factor);
+	old_max = dn->max_size;
 	printf("\e[36mnew size = %d\e[0m\n", max);
 	hfunc = dn->hash_func;
 	rfunc = dn->hash_second;
@@ -332,7 +335,8 @@ Dictionary * dictionary_grow(Dictionary * dn)
 	//reshash any previous data (new table already initialized)
 	data = (dn->hash_table);
 	dn->hash_table = new_table;
-	for(i = 0; i < dn->max_size; ++i)
+	dn->max_size = max;
+	for(i = 0; i < old_max; ++i)
 	{
 		//if there is an entry at this hash index:
 		if(data[i] != NULL)
@@ -343,7 +347,6 @@ Dictionary * dictionary_grow(Dictionary * dn)
 		}
 	}
 	//manage data and reassign
-	dn->max_size = max;
 	free(data);
 	//printall(new_table, max, stdout);
 	return(dn);
@@ -389,25 +392,44 @@ char * dictionary_search(Dictionary * dn, char * query)
 {
 	//LOCAL VARIABLES
 	int (*hash_fx)(const char *, int);// dereferenced dictionary i/o fx
-	int probe_i;// string index in the hash table
+	int probe_i = -1;// string index in the hash table
 	int collisions;// count of collisions that have occured
 	char ** table;// hash table data from the dictionary
 	int max;//the max tabel size
+	int not_found = 1;// start logic, true=1, false=0
+	char * result = NULL;
 	
 	//EXECUTABLE STATEMENTS
 	collisions = 0;
 	max = dn->max_size;
-	// hash the query
+	table = dn->hash_table;
+	/* hash the query */
 	hash_fx = dn->hash_func;
 	probe_i = hash_fx(query, max);
-	// rehash the query conditionally
-	while(!strcmp(query, table[probe_i]) && ++collisions < max)
-	{	probe_i = (collisions * collisions + probe_i) % max;
+	/* rehash the query conditionally */
+	//printf("\e[31mprobe_i = %d\n\e[0m", probe_i);
+	if(probe_i < 0 || !table[probe_i])
+	{
+		//printf("Case 1: NULL at 1st\n");
+		goto end_search;
+	}	
+	while(strcmp(query, table[probe_i]) && ++collisions < max)
+	{	
+		probe_i = dn->hash_second(query, dn->max_size, probe_i, collisions);
+		//printf("\e[31mprobe_i = %d\n\e[0m", probe_i);
+		if(table[probe_i] == NULL)
+		{
+			//printf("Case 2: NULL at %d try\n", collisions);
+			goto end_search;
+		}
+		//printf("searching... %s\n", table[probe_i]);
 	}
-	if(collisions >= max)
-	{	fprintf(stderr, "Error: Query not found\n");
-		return(NULL);
-	}
+	//printf("\e[32mprobe_i = %d\n\e[0m", probe_i);
+	result = table[probe_i];
+	//printf("\e[32mtable[i] = %s\n\e[0m", result);
+	not_found = 0;
+	end_search:
+	/* update search statistics */
 	dn->t_hash_searches += 1;
 	dn->t_search_collisions += collisions;
 	if(dn->t_search_collisions)
@@ -416,7 +438,12 @@ char * dictionary_search(Dictionary * dn, char * query)
 		float T_sc = (float)dn->t_search_collisions;
 		dn->avg_search_collisions = (T_sc) / (T_hs);
 	}
-	return(table[probe_i]);
+	/* print not found if so */
+	if(not_found)
+	{	
+		//fprintf(stderr, "Error: Query not found\n");
+	}
+	return(result);
 }
 
 ///
