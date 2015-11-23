@@ -1,10 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <time.h>
 #include "dictionary.h"
 
 #define MAX_CHAR_LINE 255 
 #define MAX_FAIL 3
+//#define MAX_BYTES_PER_BUFFER 65536
+#define MAX_BYTES_PER_BUFFER 20
 //#define DN_WORDBANK_FN "wordbank_abr.txt"
 #define DN_WORDBANK_FN "abcd"
 //#define DN_WORDBANK_FN "wordbank_10.txt"
@@ -255,57 +258,152 @@ MsgQueue * unqueue_read_free(MsgQueue * queue_front, char ** read)
  *		
  *
  */
-MsgQueue * buffer_io(FILE * fp)
+MsgQueue * buffered_file_input(FILE * fp)
 {
 	/// LOCAL MAIN VARIABLES
-	long file_end;// file size in bytes
-	long file_offset;// current file position
-	long load_size; // num of bytes per buffer-load
-	long n_bytes_read;// 
-	MsgQueue * output;// message queue output
-	char * file_character_buffer;// source for file data
+	long file_end =			-1;// file size in bytes
+	long file_offset =		 0;// current file position
+	long load_size =		 0; // num of bytes per buffer-load
+	long n_bytes_read =		 0;// actual bytes read 
+	MsgQueue * q_front =	 NULL;// message queue output
+	MsgQueue * q_back =		 NULL;// message queue access point
+	char * file_character_buffer = NULL;// source for file data
 	char residual_character_buffer[MAX_CHAR_LINE];// 
-	char current_char;// character that represents the last char read
-	int lerc;// local error code
-	int check_index;// a value for checking to see where the last 
-	int save_index;//
-	int	n_residuals;// number of characters after the last full line in file
+	char front_end_buffer[MAX_CHAR_LINE];// 
+	char current_char =		 '\0';// character that represents the last char read
+	char delimeter =		 '.';// character that separates words in the file
+	int bool_large_word =	 False;// special case for word spanning buffer 
+	int bool_error =		 False;// local error code
+	int check_index =		 0;// a value for checking to see where the last 
+	int save_index =		 0;// 
+	//int assembly_index =	 0;//
+	int	n_residuals =		 0;// number of characters after the last full line in file
+	int n_loads	=			 0;// number of loop iterations
+	int n_buffered_c =		 0;// number of char in buffer
 
 	/// EXECUTABLE STATEMENTS 
-	load_size = (65536) * sizeof(char);
-	file_offset = 0;
+	load_size = (MAX_BYTES_PER_BUFFER) * sizeof(char);
 	// find total size of the file 
 	fseek(fp, 0, SEEK_END);
 	file_end = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
 	
-	while(file_offset + load_size < file_end)
+	/* ---------------------------------
+	 *	Buffered File Input Loop Logic
+	 *	1) load a chunk
+	 *	2) * handle top-of-buffer word endings
+	 *	3) * save end-of-buffer word parts
+	 *	4) save buffer data
+	 */
+	while(file_offset < file_end)
 	{
-		// load a single chunk of data 
-		file_character_buffer = malloc(sizeof(char) * load_size) + 1;
+		/// load a single chunk of data 
+		printf("\n\nLoad number %d]\n", ++n_loads);
+		if(file_offset + load_size >= file_end)
+		{
+			printf("Final load\n");
+			load_size = (file_end - file_offset);
+		}
+		file_character_buffer = malloc(sizeof(char) * load_size + 1);
 		n_bytes_read = fread(file_character_buffer, sizeof(char), load_size, fp);
 		file_character_buffer[load_size] = '\0';
-		
-		// find the last word in the list
-		n_residuals = 0;
-		for(check_index = load_size - 1; check_index >= 0; --check_index)
+		file_offset += load_size;
+		n_buffered_c = load_size;
+		// check for reading failures
+		if(n_bytes_read != load_size)
 		{
-			if(file_character_buffer[check_index] == '\n') 
-			{
-				break;
-			}
-			++n_residuals;
+			fprintf(stderr, "Error: read %ld / %ld bytes\n", n_bytes_read, load_size);
+			bool_error = 1;
 		}
-
-		// save any residual characters
-		memset(residual_character_buffer, '\0', sizeof(residual_character_buffer));
-		for(save_index = 0; save_index < n_residuals; ++save_index)
-		{
-			residual_character_buffer[save_index] = file_character_buffer[++check_index];
-		}
-
-	}	
+		printf("Read: %s\n", file_character_buffer);
 	
 
+
+		/// assemble the first word with the characters in the residual_buffer
+		if(n_residuals || bool_large_word)
+		{
+			// continue after the residual buffer data
+			printf("%4sAssembling pivot word\n", "");
+			printf("%4s(Buffer) = %s\n", "", residual_character_buffer);
+			check_index = 0;
+			while(n_buffered_c && file_character_buffer[check_index] != delimeter)
+			{
+				residual_character_buffer[save_index++] = file_character_buffer[check_index];
+				file_character_buffer[check_index] = delimeter;
+				++check_index;
+				--n_buffered_c;
+			}
+			if(!n_buffered_c && file_offset < file_end) 
+			{
+				printf("%8sspecial case\n", "");
+				bool_large_word = True;
+				/// the "word" in question spans an entire buffer
+				// keep reading buffers in an attempt to finish word
+			}
+			else 
+			{
+				bool_large_word = False;
+				residual_character_buffer[++save_index] = '\0';
+				q_back = append_write_create(q_back, strdup(residual_character_buffer));
+			}
+			--n_buffered_c;
+			printf("%4s(Buffer) = %s\n", "", residual_character_buffer);
+			// save the residual data
+		}
+	
+
+
+		/// handle an uneven cut caused by the amount of characters read
+		if(file_offset < file_end)
+		{
+			// find the last word in the list
+			printf("%4sFinding residual characters\n", "");
+			printf("%s\n", file_character_buffer);
+			n_residuals = 0;
+			for(check_index = load_size - 1; check_index >= 0; --check_index)
+			{
+				if(file_character_buffer[check_index] == delimeter) 
+				{
+					break;
+				}
+				++n_residuals;
+			}
+			// save any residual characters
+			if(!bool_large_word)
+			{
+				memset(residual_character_buffer, '\0', sizeof(residual_character_buffer));
+				save_index = 0;
+			}
+			for(/* save index value */; save_index < n_residuals; ++save_index)
+			{
+				residual_character_buffer[save_index] = file_character_buffer[++check_index];
+				file_character_buffer[check_index] = delimeter;
+				--n_buffered_c;
+			}
+			printf("%4s(Buffer) = %s\n", "", residual_character_buffer);
+		}
+	
+	
+		/// save the buffered input
+		if(n_buffered_c > 0) 
+		{
+			if(!bool_large_word)
+			{
+				q_back = append_write_create(q_back, file_character_buffer);
+				if(!q_front)
+				{
+					q_front = q_back;
+				}
+			}
+		}
+		else
+		{
+			free(file_character_buffer);
+		}
+
+	} /* END OF LOOP LOGIC */	
+
+	return(q_front);
 
 }
 
@@ -494,6 +592,9 @@ int prompt_continue(void)
 
 void test1()
 {
+	// test:
+	//	prompt_user
+	//
 	char * buffer = NULL;
 	char * message = "Input a string:    ";
 	int pass_fail = False;
@@ -505,6 +606,54 @@ void test1()
 
 }
 
+void test2()
+{
+	// test:
+	//	buffered_file_input()
+	//
+	MsgQueue * input = NULL;
+	MsgQueue * part = NULL;
+	char * message = NULL;
+	FILE * fp = fopen(DN_WORDBANK_FN, "r");
+	int count = 0;
+
+	input = buffered_file_input(fp);
+	while( input )
+	{
+		printf("%3d: (%p):\t", ++count, input);			
+		input = unqueue_read_free(input, &message);
+		printf("%s\n", message);
+		free(message);
+	}
+
+	fclose(fp);
+}
+/*
+void test3()
+{
+	// test:
+	//	explode()
+	//
+	int sz_max = 10;
+	char * t = "  a bc d";//"taco\tburrito nacho\rsalsa";
+	char * d = " \t\f\v\n\raeiou";
+	char ** frags;
+	char * str = "aushtlknawrt\nenskdnf\vkwek!";
+	char ** grenade = explode(str, " ", &sz_max);
+
+	frags = explode(t, d, &check);
+	for(sz_max = 0; sz_max < check; ++sz_max)
+	{
+		test_explode(d);
+	}
+		printf("frags[%d] = \"%s\"\n", sz_max, frags[sz_max]);
+		printf("frags[%d] = \"%p\"\n", sz_max, frags[sz_max]);
+		free(frags[sz_max]);
+	}
+	free(frags);
+	
+}
+*/
 int search_loop(Dictionary * dn)
 {
 	///LOCAL DECLARATIONS
@@ -566,24 +715,11 @@ int main(int argc, char * argv[])
 	float thresh = 75.0f;// % of whole
 	float sz_ratio = 4.0f;// * orig
 	int check = 1;
-	//char ** grenade = explode(str, " ", &sz_max);
 
-	/*
-	//char * t = "  a bc d";//"taco\tburrito nacho\rsalsa";
-	//char * d = " \t\f\v\n\r";
-	char * d = "8";
-	//char ** frags;
-	//frags = explode(t, d, &check);
-	for(sz_max = 0; sz_max < check; ++sz_max)
-	{
-		test_explode(d);
-	}
-	//	printf("frags[%d] = \"%s\"\n", sz_max, frags[sz_max]);
-	//	printf("frags[%d] = \"%p\"\n", sz_max, frags[sz_max]);
-	//	free(frags[sz_max]);
-	//}
-	//free(frags);
-	*/
+
+	test2();
+	return 0;
+
 	int tree_n, tbl_n, hash_n, rehash_n;
 	tree_n = 0;// no tree sruct
 	tbl_n = 1;// standard, one slot table

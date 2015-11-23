@@ -1,0 +1,37 @@
+BIT MASK CONFIG README
+	This is a readme to represent
+	the bool variable based into:
+	struct Dictionary.config
+______________________________
+uint32_t config 
+
+|         |	|		  | |         | |    |   
+0000 0000 |	0000 0000 |	0000 0000 | 0000 0000
+6         | 5         |	4         | 2    1 
+
+______________________________
+[*1] = Data Storage
+
+	00 *no op*
+	01	array/table only
+	10	tree struct only
+	11  both array and tree
+______________________________
+[*2] = NULL
+______________________________
+[*3] = Hash Function 1
+
+	0000..	hash function number 
+	1111..  function allows as much as
+			16 build in functions
+______________________________
+[*4] = Hash Function 2
+
+	0000..	hash function number 
+	1111..  function allows as much as
+			16 build in functions
+______________________________
+[*5] = NULL
+
+______________________________
+
