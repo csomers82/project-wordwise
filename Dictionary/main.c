@@ -7,11 +7,13 @@
 #define MAX_CHAR_LINE 255 
 #define MAX_FAIL 3
 //#define MAX_BYTES_PER_BUFFER 65536
-#define MAX_BYTES_PER_BUFFER 20
+#define MAX_BYTES_PER_BUFFER 16384
+//#define DN_WORDBANK_FN "wordbank.txt"
 //#define DN_WORDBANK_FN "wordbank_abr.txt"
-#define DN_WORDBANK_FN "abcd"
+//#define DN_WORDBANK_FN "abcd"
+//#define DN_WORDBANK_FN "abcd1"
 //#define DN_WORDBANK_FN "wordbank_10.txt"
-//#define DN_WORDBANK_FN "/usr/share/dict/american-english"
+#define DN_WORDBANK_FN "/usr/share/dict/american-english"
 
 #define True 1
 #define False 0
@@ -261,28 +263,32 @@ MsgQueue * unqueue_read_free(MsgQueue * queue_front, char ** read)
 MsgQueue * buffered_file_input(FILE * fp)
 {
 	/// LOCAL MAIN VARIABLES
-	long file_end =			-1;// file size in bytes
-	long file_offset =		 0;// current file position
-	long load_size =		 0; // num of bytes per buffer-load
-	long n_bytes_read =		 0;// actual bytes read 
-	MsgQueue * q_front =	 NULL;// message queue output
-	MsgQueue * q_back =		 NULL;// message queue access point
-	char * file_character_buffer = NULL;// source for file data
-	char residual_character_buffer[MAX_CHAR_LINE];// 
-	char front_end_buffer[MAX_CHAR_LINE];// 
-	char current_char =		 '\0';// character that represents the last char read
-	char delimeter =		 '.';// character that separates words in the file
-	int bool_large_word =	 False;// special case for word spanning buffer 
-	int bool_error =		 False;// local error code
-	int check_index =		 0;// a value for checking to see where the last 
-	int save_index =		 0;// 
-	//int assembly_index =	 0;//
-	int	n_residuals =		 0;// number of characters after the last full line in file
-	int n_loads	=			 0;// number of loop iterations
-	int n_buffered_c =		 0;// number of char in buffer
+	long	file_end			= -1;// file size in bytes
+	long	file_offset			= 0;// current file position
+	long	load_size			= 0; // num of bytes per buffer-load
+	long	n_bytes_read		= 0;// actual bytes read 
+	MsgQueue *	q_front			= NULL;// message queue output
+	MsgQueue *	q_back			= NULL;// message queue access point
+	char *	file_character_buffer = NULL;// source for file data
+	char	residual_character_buffer[MAX_CHAR_LINE];// 
+	char *	extra_word_buffer	= NULL;// 
+	char	delimiter			= '\n';// character that separates words in the file
+	int		bool_large_word		= False;// special case for word spanning buffer 
+	int		bool_error			= False;// local error code
+	int		check_index			= 0;// a value for checking to see where the last 
+	int		save_index			= 0;// 
+	int		assembly_index		= 0;//
+	int		n_residuals			= 0;// number of characters after the last full line in file
+	int		n_loads				= 0;// number of loop iterations
+	int		n_buffered_c		= 0;// number of char in buffer
+	clock_t	start				= 0;
+	clock_t finish				= 0;
 
 	/// EXECUTABLE STATEMENTS 
 	load_size = (MAX_BYTES_PER_BUFFER) * sizeof(char);
+	extra_word_buffer = malloc(load_size + 1);
+	start = clock();
+	
 	// find total size of the file 
 	fseek(fp, 0, SEEK_END);
 	file_end = ftell(fp);
@@ -298,10 +304,10 @@ MsgQueue * buffered_file_input(FILE * fp)
 	while(file_offset < file_end)
 	{
 		/// load a single chunk of data 
-		printf("\n\nLoad number %d]\n", ++n_loads);
+		//printf("\n\nLoad number %d]\n", ++n_loads);
 		if(file_offset + load_size >= file_end)
 		{
-			printf("Final load\n");
+			//printf("Final load\n");
 			load_size = (file_end - file_offset);
 		}
 		file_character_buffer = malloc(sizeof(char) * load_size + 1);
@@ -312,10 +318,10 @@ MsgQueue * buffered_file_input(FILE * fp)
 		// check for reading failures
 		if(n_bytes_read != load_size)
 		{
-			fprintf(stderr, "Error: read %ld / %ld bytes\n", n_bytes_read, load_size);
+			//fprintf(stderr, "Error: read %ld / %ld bytes\n", n_bytes_read, load_size);
 			bool_error = 1;
 		}
-		printf("Read: %s\n", file_character_buffer);
+		//printf("Read: %s\n", file_character_buffer);
 	
 
 
@@ -323,31 +329,45 @@ MsgQueue * buffered_file_input(FILE * fp)
 		if(n_residuals || bool_large_word)
 		{
 			// continue after the residual buffer data
-			printf("%4sAssembling pivot word\n", "");
-			printf("%4s(Buffer) = %s\n", "", residual_character_buffer);
+			//printf("%4sAssembling pivot word\n", "");
+			//printf("%4s(Buffer) = %s\n", "", residual_character_buffer);
 			check_index = 0;
-			while(n_buffered_c && file_character_buffer[check_index] != delimeter)
+			while(n_buffered_c && file_character_buffer[check_index] != delimiter)
 			{
 				residual_character_buffer[save_index++] = file_character_buffer[check_index];
-				file_character_buffer[check_index] = delimeter;
+				file_character_buffer[check_index] = delimiter;
 				++check_index;
 				--n_buffered_c;
 			}
 			if(!n_buffered_c && file_offset < file_end) 
 			{
-				printf("%8sspecial case\n", "");
+				//printf("%8sspecial case\n", "");
 				bool_large_word = True;
 				/// the "word" in question spans an entire buffer
 				// keep reading buffers in an attempt to finish word
 			}
 			else 
-			{
+			{	///* Save the residuals to the extra word buffer */ 
 				bool_large_word = False;
-				residual_character_buffer[++save_index] = '\0';
-				q_back = append_write_create(q_back, strdup(residual_character_buffer));
+				// if the new word will not fit in the EWB, empty the buffer	
+				if(save_index + assembly_index >= load_size)
+				{	
+					//printf("%8sOutputting extra words buffer\n", "");
+					extra_word_buffer[--assembly_index] = '\0';
+					q_back = append_write_create(q_back, strdup(extra_word_buffer));
+					memset(extra_word_buffer, '\0', load_size);
+					assembly_index = 0;
+				}
+				// copy the residual buffer to the extra word buffer
+				int copy_index;
+				for(copy_index = 0; copy_index < save_index; ++copy_index)
+				{
+					extra_word_buffer[assembly_index++] = residual_character_buffer[copy_index];
+				}
+				extra_word_buffer[assembly_index++] = delimiter;
 			}
 			--n_buffered_c;
-			printf("%4s(Buffer) = %s\n", "", residual_character_buffer);
+			//printf("%4s(Buffer) = %s\n", "", residual_character_buffer);
 			// save the residual data
 		}
 	
@@ -357,12 +377,12 @@ MsgQueue * buffered_file_input(FILE * fp)
 		if(file_offset < file_end)
 		{
 			// find the last word in the list
-			printf("%4sFinding residual characters\n", "");
-			printf("%s\n", file_character_buffer);
+			//printf("%4sFinding residual characters\n", "");
+			//printf("%s\n", file_character_buffer);
 			n_residuals = 0;
 			for(check_index = load_size - 1; check_index >= 0; --check_index)
 			{
-				if(file_character_buffer[check_index] == delimeter) 
+				if(file_character_buffer[check_index] == delimiter) 
 				{
 					break;
 				}
@@ -377,10 +397,10 @@ MsgQueue * buffered_file_input(FILE * fp)
 			for(/* save index value */; save_index < n_residuals; ++save_index)
 			{
 				residual_character_buffer[save_index] = file_character_buffer[++check_index];
-				file_character_buffer[check_index] = delimeter;
+				file_character_buffer[check_index] = delimiter;
 				--n_buffered_c;
 			}
-			printf("%4s(Buffer) = %s\n", "", residual_character_buffer);
+			//printf("%4s(Buffer) = %s\n", "", residual_character_buffer);
 		}
 	
 	
@@ -402,9 +422,62 @@ MsgQueue * buffered_file_input(FILE * fp)
 		}
 
 	} /* END OF LOOP LOGIC */	
+	if(assembly_index > 0)
+	{
+		//printf("%8sOutputting extra words buffer\n", "");
+		extra_word_buffer[assembly_index] = '\0';
+		q_back = append_write_create(q_back, strdup(extra_word_buffer));
+	}
+	free(extra_word_buffer);
+	finish = clock();
+	
+	printf("\e[33mBuffered input assembled in [%lf] seconds\e[0m\n", (double)(finish - start) / CLOCKS_PER_SEC);
 
 	return(q_front);
 
+}
+
+Dictionary * manage_buffered_file(Dictionary * dn)
+{
+	//LOCAL MAIN VARIABLES
+	FILE * fp = NULL;//the input filename of program
+	MsgQueue * q_front = NULL;// the output end of the message queue
+	char * buffer = NULL;// current line being read from the file
+	char * delims = ",\t\r\v\f\n";// delimeters in the data file
+	char** frags;// the buffer split into its unique strings
+	int add_i;// number of str's managed from the current line 
+	int n_line_entries = 0;// number of unique str in the line read from the file
+
+	// accept the message data
+	fp = open_file(DN_WORDBANK_FN);
+	if(!fp) 
+	{
+		fprintf(stderr, "Error: unable to open file for reading\n");
+		return(dn);
+	}
+	q_front = buffered_file_input(fp);
+	fclose(fp);
+
+	// consider and use the data, so long as it is queue'd to manage
+	while(q_front)
+	{
+		// pop data, split data
+		q_front = unqueue_read_free(q_front, &buffer);	
+		frags = explode(buffer, delims, &n_line_entries);
+
+		// add each split segment str
+		for(add_i = 0; add_i < n_line_entries; ++add_i) 
+		{	
+			dictionary_add_entry(dn, frags[add_i]);
+			//printall(dn->hash_table, dn->max_size, stdout);
+		}
+		// buffer is free'd but frags is not (left in data as is, str's being used)
+		free(buffer);
+		//free(*frags);
+		free(frags);
+	}
+
+	return(dn);
 }
 
 Dictionary * manage_file(Dictionary * dn)
@@ -711,14 +784,14 @@ int main(int argc, char * argv[])
 	printf("%s", str);
 	//test variables
 	Dictionary * DN;
-	int sz_max = 30000;
+	int sz_max = 120000;
 	float thresh = 75.0f;// % of whole
 	float sz_ratio = 4.0f;// * orig
 	int check = 1;
 
-
-	test2();
-	return 0;
+	//test1();
+	//test2();
+	//return 0;
 
 	int tree_n, tbl_n, hash_n, rehash_n;
 	tree_n = 0;// no tree sruct
@@ -735,7 +808,7 @@ int main(int argc, char * argv[])
 	DN = dictionary_create(sz_max, config);
 	
 	dictionary_initialize(DN, thresh, sz_ratio);
-	DN = manage_file(DN);
+	DN = manage_buffered_file(DN);
 	//while(check--)
 	//{
 	//		add(DN);// add another entry into the table
