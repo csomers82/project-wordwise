@@ -94,6 +94,7 @@ Dictionary * dictionary_create(int max, uint32_t config)
 		case 1: hashP = hash_01_even_sect; break;
 		case 2: hashP = hash_02_sum_char_products; break;
 		case 3: hashP = hash_03_base_128; break;
+		case 4: hashP = hash_04_nicks_sdbm; break;
 		case 0: 
 		default: hashP = hash_00_char_sum;  
 	}

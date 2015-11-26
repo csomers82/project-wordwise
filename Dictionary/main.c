@@ -7,13 +7,14 @@
 #define MAX_CHAR_LINE 255 
 #define MAX_FAIL 3
 //#define MAX_BYTES_PER_BUFFER 65536
-#define MAX_BYTES_PER_BUFFER 16384
+#define MAX_BYTES_PER_BUFFER 65536
 //#define DN_WORDBANK_FN "wordbank.txt"
 //#define DN_WORDBANK_FN "wordbank_abr.txt"
 //#define DN_WORDBANK_FN "abcd"
 //#define DN_WORDBANK_FN "abcd1"
 //#define DN_WORDBANK_FN "wordbank_10.txt"
-#define DN_WORDBANK_FN "/usr/share/dict/american-english"
+//#define DN_WORDBANK_FN "copy-american-english"
+#define DN_WORDBANK_FN "copy-american-english-abr"
 
 #define True 1
 #define False 0
@@ -281,13 +282,10 @@ MsgQueue * buffered_file_input(FILE * fp)
 	int		n_residuals			= 0;// number of characters after the last full line in file
 	int		n_loads				= 0;// number of loop iterations
 	int		n_buffered_c		= 0;// number of char in buffer
-	clock_t	start				= 0;
-	clock_t finish				= 0;
 
 	/// EXECUTABLE STATEMENTS 
 	load_size = (MAX_BYTES_PER_BUFFER) * sizeof(char);
 	extra_word_buffer = malloc(load_size + 1);
-	start = clock();
 	
 	// find total size of the file 
 	fseek(fp, 0, SEEK_END);
@@ -303,6 +301,7 @@ MsgQueue * buffered_file_input(FILE * fp)
 	 */
 	while(file_offset < file_end)
 	{
+		++n_loads;
 		/// load a single chunk of data 
 		//printf("\n\nLoad number %d]\n", ++n_loads);
 		if(file_offset + load_size >= file_end)
@@ -424,15 +423,14 @@ MsgQueue * buffered_file_input(FILE * fp)
 	} /* END OF LOOP LOGIC */	
 	if(assembly_index > 0)
 	{
-		//printf("%8sOutputting extra words buffer\n", "");
+		printf("%8sOutputting extra words buffer\n", "");
 		extra_word_buffer[assembly_index] = '\0';
 		q_back = append_write_create(q_back, strdup(extra_word_buffer));
 	}
 	free(extra_word_buffer);
-	finish = clock();
-	
-	printf("\e[33mBuffered input assembled in [%lf] seconds\e[0m\n", (double)(finish - start) / CLOCKS_PER_SEC);
+	printf("\e[34mLoaded %2d data sements!\e[0m\n", n_loads);
 
+	
 	return(q_front);
 
 }
@@ -447,8 +445,13 @@ Dictionary * manage_buffered_file(Dictionary * dn)
 	char** frags;// the buffer split into its unique strings
 	int add_i;// number of str's managed from the current line 
 	int n_line_entries = 0;// number of unique str in the line read from the file
+	clock_t start;
+	clock_t finish;
+	clock_t zero;
+	double ellapsed;
 
 	// accept the message data
+	start = clock();
 	fp = open_file(DN_WORDBANK_FN);
 	if(!fp) 
 	{
@@ -457,10 +460,17 @@ Dictionary * manage_buffered_file(Dictionary * dn)
 	}
 	q_front = buffered_file_input(fp);
 	fclose(fp);
+	finish = clock();
+	ellapsed = (double) (finish - start) / CLOCKS_PER_SEC;
+	printf("\e[33mBuffered file loaded in [%lf] seconds\e[0m\n", ellapsed);
 
+	
+	zero = clock();
+	int count = 0;
 	// consider and use the data, so long as it is queue'd to manage
-	while(q_front)
+	while(q_front && !(count++ > 1000))
 	{
+		start = clock();
 		// pop data, split data
 		q_front = unqueue_read_free(q_front, &buffer);	
 		frags = explode(buffer, delims, &n_line_entries);
@@ -468,6 +478,7 @@ Dictionary * manage_buffered_file(Dictionary * dn)
 		// add each split segment str
 		for(add_i = 0; add_i < n_line_entries; ++add_i) 
 		{	
+			printf("%sEntry: \"%s\"\tAddress: %p\n", "", frags[add_i], &frags[add_i]);
 			dictionary_add_entry(dn, frags[add_i]);
 			//printall(dn->hash_table, dn->max_size, stdout);
 		}
@@ -475,7 +486,12 @@ Dictionary * manage_buffered_file(Dictionary * dn)
 		free(buffer);
 		//free(*frags);
 		free(frags);
+		finish = clock();
+		ellapsed = (double) (finish - start) / CLOCKS_PER_SEC;
+		printf("\e[33mData segment %2d loaded in [%lf] seconds\e[0m\n", count, ellapsed);
 	}
+	ellapsed = (double) (finish - zero) / CLOCKS_PER_SEC;
+	printf("\e[33mData segment %2d loaded in [%lf] seconds\e[0m\n", count, ellapsed);
 
 	return(dn);
 }
@@ -784,7 +800,7 @@ int main(int argc, char * argv[])
 	printf("%s", str);
 	//test variables
 	Dictionary * DN;
-	int sz_max = 120000;
+	int sz_max = 200000;
 	float thresh = 75.0f;// % of whole
 	float sz_ratio = 4.0f;// * orig
 	int check = 1;
@@ -796,7 +812,8 @@ int main(int argc, char * argv[])
 	int tree_n, tbl_n, hash_n, rehash_n;
 	tree_n = 0;// no tree sruct
 	tbl_n = 1;// standard, one slot table
-	hash_n = 3;// base 128
+	//hash_n = 3;// base 128
+	hash_n = 4;// sbdm
 	rehash_n = 1;// linear probe
 	
 

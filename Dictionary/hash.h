@@ -61,6 +61,17 @@ int hash_02_sum_char_products(const char * str, int max_tbl_size);
  */
 int hash_03_base_128(const char * str, int max_tbl_size);
 
+///
+//A quick 'n dirty implementation of the sdbm public domain hash. 
+//Only for string keys
+//
+//Parameters:
+//	key: The key to hash
+//
+//Returns:
+//	The hashvalue of the key
+int hash_04_nicks_sdbm(const char * str, int max_tbl_size);
+
 
 
 int rehash_00_add_one(const char * str, int mts, int prev_hash, int attempt_n); 
@@ -69,3 +80,5 @@ int rehash_02_add_attempt(const char * str, int mts, int prev_hash, int attempt_
 
 
 #endif
+
+
