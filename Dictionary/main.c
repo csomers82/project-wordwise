@@ -478,7 +478,9 @@ Dictionary * manage_buffered_file(Dictionary * dn)
 		// add each split segment str
 		for(add_i = 0; add_i < n_line_entries; ++add_i) 
 		{	
-			printf("%sEntry: \"%s\"\tAddress: %p\n", "", frags[add_i], &frags[add_i]);
+			printf("Entry =\"%s\"\n", frags[add_i]);
+			fflush(stdout);
+			//printf("%sEntry: \"%s\"\tAddress: %p\n", "", frags[add_i], &frags[add_i]);
 			dictionary_add_entry(dn, frags[add_i]);
 			//printall(dn->hash_table, dn->max_size, stdout);
 		}
@@ -833,10 +835,10 @@ int main(int argc, char * argv[])
 	//		printall(DN->hash_table, DN->max_size);
 	//	}
 	
-	search_loop(DN);
-	FILE * dlog = fopen("dw.log", "w");
-	printall(DN->hash_table, DN->max_size, dlog );
-	fclose(dlog);
+	//search_loop(DN);
+	//FILE * dlog = fopen("dw.log", "w");
+	//printall(DN->hash_table, DN->max_size, dlog );
+	//fclose(dlog);
 	dictionary_free(DN);
 	
 	return 0;

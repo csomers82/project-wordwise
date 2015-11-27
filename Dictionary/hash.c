@@ -107,15 +107,19 @@ int hash_04_nicks_sdbm(const char * str, int max_tbl_size)
 	unsigned long hash = 0;
 	unsigned char byteVal;
 	unsigned int i;
+	// int rVal;
 
 	for(i = 0; i < keyLength; ++i)
 	{
 		byteVal = charKey[i];
 		hash = byteVal + (hash << 6) + (hash << 16) - hash;
 	}
-	
+		
+	//rVal = (int)(hash % max_tbl_size);
 	return (int)(hash % max_tbl_size);
-}
+	//return (rVal > 0)? rVal: -1 * rVal;
+
+}	
 
 int rehash_00_add_one(const char * str, int mts, int prev_hash, int attempt_n)
 {	return((prev_hash + 1) % mts);	
