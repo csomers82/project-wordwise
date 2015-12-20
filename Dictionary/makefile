@@ -3,8 +3,8 @@ CC=gcc
 EXEC=lookup
 CFLAGS=-g 
 LIBS=
-SOURCES=dictionary.c hash.c main.c
-DEPENDANTS=dictionary.h hash.h
+SOURCES=dictionary.c tree26.c hash.c main.c
+DEPENDANTS=dictionary.h hash.h tree26.h
 
 lookup : $(SOURCES) $(DEPENDANTS)
 	$(CC) $(CFLAGS) $(SOURCES) -o $(EXEC)

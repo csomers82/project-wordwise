@@ -6,7 +6,7 @@
 
 //==============================================================================
 /*@* GLOBAL CONSTANTS *@*/
-#define N_BRANCHES 26
+#define N_BRANCHES 27
 #define TRUE 1
 #define FALSE 0
 
@@ -17,15 +17,16 @@
  */
 typedef struct Tree26 {
 	char * str;// section of string present
-	struct Tree26 * branch[N_BRANCHES];// a child branch for each next availible letter
+	struct Tree26 ** branch;// a child branch for each next availible letter
 	int	bool_complete;// TRUE or FALSE, is the string a valid string 
 	int n_chars;// the current strlen()
 } Tree26;
 
 //==============================================================================
 /*@* TREE26 MACROS *@*/
-#define ADJUST(chr) ((chr > 65 && chr < 97) ? (chr - 65): \
-					((chr > 99 && chr < 128) ? (chr - 97): (-1)))
+#define ADJUST(chr) ((((int)chr >= 65) && ((int)chr <= 90)) ? ((int)chr - 65): \
+					((((int)chr >= 97) && ((int)chr <= 122)) ? ((int)chr - 97): \
+					((int)chr == 39)? 26: -1))
 #define BRANCH(tr26, chr) (tr26->branch[ADJUST(chr)])
 
 
@@ -45,7 +46,7 @@ Tree26 * tree26_create();
  *			const char * store:	new value coming into the tree
  *	out:	void
  */
-void tree26_insert(Tree26 * root, const char * store);
+Tree26 * tree26_insert(Tree26 * root, const char * store);
 
 /***
  *	Returns a int equivalent boolean whether the root has children or not

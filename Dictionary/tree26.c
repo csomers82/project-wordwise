@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include "tree26.h"
 
 /*
@@ -24,7 +25,7 @@ Tree26 * tree26_create()
 {
 	/// ALLOCATE THE POINTER VARIABLES
 	Tree26 * sprout = malloc(sizeof(Tree26));
-	sprout->branch = malloc(sizeof(Tree26*) * N_BRANCHES);
+	sprout->branch = (struct Tree26 **) malloc(sizeof(Tree26*) * N_BRANCHES);
 	int branch;
 	for(branch = 0; branch < N_BRANCHES; ++branch)
 	{	// assign the children all to (NULL)
@@ -33,24 +34,133 @@ Tree26 * tree26_create()
 	sprout->n_chars = 0;
 	sprout->bool_complete = FALSE;
 	// assign root string to empty
-	sprout->str = strdup("");
+	sprout->str = NULL;//strdup("");
 	return sprout;
 }
 
 /***
  *	Inserts a value into the tree at the appropriate location
+ *	Implements the insertion with an iterative algoritm.
+ *
  *	in:		Tree26 * root: tree source location
- *			const char * store:	new value coming into the tree
+ *			const char * savee:	new value coming into the tree
  *	out:	void
  */
-void tree26_insert(Tree26 * root, const char * store)
+Tree26 * tree26_insert(	Tree26 * root, 
+						const char * savee)
 {
 	////LOCAL VARIABLES
-	char current;// referenced char at *store
+	int str_i;// index of string being stored
+	int bi;//index of branch in question
+	int length;// length of string savee
+	char buffer[32];// the savee built letter by letter
 	Tree26 * tree;// the current head of the search effort
-
+	Tree26 * past;// the next branch for travel
+	Tree26 * sprout;// a new child node
 
 	////EXECUTABLE STATEMENTS
+
+	//check for incompatible characters in the string (tree protection)
+	for( length = 0; length < strlen(savee); ++length)
+	{
+		if(ADJUST(savee[length]) < 0)
+		{
+			fprintf(stderr, "Error: unexpected symbol\n");
+			fprintf(stderr, "savee  = %s\n", savee);
+			fprintf(stderr, "index  = %d\n", length);
+			fprintf(stderr, "\n");
+			free((char *) savee);
+			return(root);
+		}
+	}
+	//primary initialization
+	memset(buffer, '\0', sizeof(buffer));
+	str_i = 0;
+	past = root;
+	tree = BRANCH(root, savee[str_i]); 
+	length = strlen(savee);
+	//printf("savee = %s\n", savee);
+	//printf("root = %p\n", root);
+	
+	//if/ tree value is not the final tree value 
+	while((str_i < length))// && (str_i < 32)) 
+	{
+		// add the next letter to the node definition: buffer
+		buffer[str_i] = savee[str_i];
+		//printf("index = %2d,    buffer = %s\n", str_i, buffer);
+		//printf("\t\t\t\tstr_i = %d\n", str_i);
+			
+		//if/ node is not null: continue traversal
+		if( tree )
+		{
+			past = tree;
+			// final destination node, validate string
+			if(str_i + 1 == length)
+			{
+				tree->bool_complete = TRUE;
+				int res = strcmp(savee, tree->str);
+				if( !res )
+				{
+					free(tree->str);
+					tree->str = (char *) savee;
+					printf("Existing word validated.\n");
+					return(root);
+				}
+				else 
+				{
+					if( res > 0 )
+					{
+						free(tree->str);
+						tree->str = (char *) savee;
+					}
+					else 
+					{
+						free( (char *) savee);
+					}
+					fprintf(stderr, "Error: target-position / string-definition mismatch\n");
+					fprintf(stderr, "savee    = .%s.\n", savee);
+					fprintf(stderr, "tree-str = .%s.\n", tree->str);
+					fprintf(stderr, "\n");
+					return(root);
+				}
+			}
+			++str_i;
+			tree = BRANCH(tree, savee[str_i]);
+		}
+		else// is null: create node, place intermediate value
+		{
+			sprout = tree26_create();
+			sprout->n_chars = str_i + 1;
+
+			bi = ADJUST(savee[str_i]);
+			past->branch[bi] = sprout;
+			
+			past = sprout;
+			++str_i;
+
+			// final pass
+			if(str_i == length)
+			{
+				sprout->str = (char *) savee;
+				sprout->bool_complete = TRUE;
+			}
+			else
+			{
+				sprout->str = strdup(buffer);
+				tree = BRANCH(sprout, savee[str_i]);
+			}
+		}
+		//printf("\t\t\t\tstr_i = %d\n", str_i);
+	}
+	//printf("\t\t\t\tstr_i = %d\n", str_i);
+	
+	
+	if(str_i >= 32)
+	{
+		printf("Error: fault in loop logic\n");
+	}
+	return(root);
+
 }
 
 /***
@@ -83,7 +193,7 @@ void tree26_destroy(Tree26 * vic)
 	int lbi;// for an easier reference during popping procedure
 	Tree26 * curr;// current node in question
 	Tree26 * last;// for easier reference
-	Tree26 stack[20];// the storage for the previous node "CLRS.pdf"
+	Tree26 * stack[20];// the storage for the previous node "CLRS.pdf"
 	int bri_stack[20];// stores the previous node branch indices in parallel
 	int reset;// control flag
 	
@@ -154,4 +264,3 @@ void tree26_remove(Tree26 * root, const char * rem_ref);
  */
 Tree26 * tree26_search(Tree26 * root, const char * srk_ref);
 
-#endif

@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <time.h>
 #include "dictionary.h"
+#include "tree26.h"
 
 #define MAX_CHAR_LINE 255 
 #define MAX_FAIL 3
@@ -13,11 +14,14 @@
 //#define DN_WORDBANK_FN "abcd"
 //#define DN_WORDBANK_FN "abcd1"
 //#define DN_WORDBANK_FN "wordbank_10.txt"
-//#define DN_WORDBANK_FN "copy-american-english"
-#define DN_WORDBANK_FN "copy-american-english-abr"
+#define DN_WORDBANK_FN "copy-american-english"
+//#define DN_WORDBANK_FN "copy-american-english-abr"
+//#define DN_WORDBANK_FN "ababc"
 
 #define True 1
 #define False 0
+#define TRUE 1
+#define FALSE 0
 
 
 typedef struct MsgQueue {
@@ -779,7 +783,7 @@ int search_loop(Dictionary * dn)
 			{
 				fprintf(stderr, "%d)\t%sItem \"%s\" not found.%s\n", search_n, mc, buffer, ec);
 			}
-			else 
+			else
 			{
 				//printf("item position = %d\n", item_position);
 				fprintf(stdout, "%d)\t%sFound: %s%s\n", search_n, hc, *entry, ec);
@@ -794,6 +798,140 @@ int search_loop(Dictionary * dn)
 
 	return 0;
 }
+
+
+Tree26 * manage_buffered_file_tree(Tree26 * root)
+{
+	//LOCAL MAIN VARIABLES
+	FILE * fp = NULL;//the input filename of program
+	MsgQueue * q_front = NULL;// the output end of the message queue
+	char * buffer = NULL;// current line being read from the file
+	char * delims = ",\t\r\v\f\n";// delimeters in the data file
+	char** frags;// the buffer split into its unique strings
+	int add_i;// number of str's managed from the current line 
+	int n_line_entries = 0;// number of unique str in the line read from the file
+	clock_t start;
+	clock_t finish;
+	clock_t zero;
+	double ellapsed;
+
+	// accept the message data
+	start = clock();
+	fp = open_file(DN_WORDBANK_FN);
+	if(!fp) 
+	{
+		fprintf(stderr, "Error: unable to open file for reading\n");
+		return(root);
+	}
+	q_front = buffered_file_input(fp);
+	fclose(fp);
+	finish = clock();
+	ellapsed = (double) (finish - start) / CLOCKS_PER_SEC;
+	printf("\e[33mBuffered file loaded in [%lf] seconds\e[0m\n", ellapsed);
+
+	
+	zero = clock();
+	int count = 0;
+	// consider and use the data, so long as it is queue'd to manage
+	while(q_front && !(count++ > 1000))
+	{
+		start = clock();
+		// pop data, split data
+		q_front = unqueue_read_free(q_front, &buffer);	
+		frags = explode(buffer, delims, &n_line_entries);
+
+		// add each split segment str
+		for(add_i = 0; add_i < n_line_entries; ++add_i) 
+		{	
+			printf("Entry =\"%s\"\n", frags[add_i]);
+			fflush(stdout);
+			//printf("%sEntry: \"%s\"\tAddress: %p\n", "", frags[add_i], &frags[add_i]);
+			root = tree26_insert(root, frags[add_i]);
+			//printall(dn->hash_table, dn->max_size, stdout);
+		}
+		// buffer is free'd but frags is not (left in data as is, str's being used)
+		free(buffer);
+		//free(*frags);
+		free(frags);
+		finish = clock();
+		ellapsed = (double) (finish - start) / CLOCKS_PER_SEC;
+		printf("\e[33mData segment %2d loaded in [%lf] seconds\e[0m\n", count, ellapsed);
+	}
+	ellapsed = (double) (finish - zero) / CLOCKS_PER_SEC;
+	printf("\e[33mData segment %2d loaded in [%lf] seconds\e[0m\n", count, ellapsed);
+
+	return(root);
+}
+
+void tree_print(Tree26 * root, int depth)
+{
+	if( root )
+	{
+		int i, j;
+		for(i = 0; i < depth; ++i)
+			printf(". ");
+		printf("%s\n", root->str);
+		for(i = 0; i < N_BRANCHES; ++i)
+		{
+			//for(j = 0; j < depth; ++j)
+			//	printf(". ");
+			//printf("%c\n", i+65);
+			if(root->branch[i])
+			{
+				tree_print(root->branch[i], depth + 1);
+			}
+		}
+	}
+}	
+
+void tree_free(Tree26 * root)
+{
+	if( root )
+	{
+		free(root->str);
+		int i;
+		for(i = 0; i < N_BRANCHES; ++i)
+		{
+			if(root->branch[i])
+			{
+				tree_free(root->branch[i]);
+			}
+		}
+		free(root->branch);
+		free(root);
+	}
+	return;
+}
+
+void tree_test()
+{
+
+	Tree26 * root = tree26_create();
+	root->str = strdup("");
+	/*
+	int i;
+	char * buffer = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'\\#$% &";
+	char chr;
+	for(i = 0; i < strlen(buffer); ++i)
+	{
+		printf("%c = %d = (%d)\t", buffer[i], ADJUST(buffer[i]), (int)buffer[i]);
+		chr = buffer[i];
+		if(((int)chr >= 65) && ((int)chr < 97))
+			printf("A");
+		else if(((int)chr >= 97) && ((int)chr <= 122))
+			printf("a");
+		else //((int)chr == 39))
+			printf("*");
+		printf("\n");
+	}
+	return;
+	*/
+	manage_buffered_file_tree(root);
+	tree_print(root, 0);
+	tree_free(root);
+	return;
+}
+
 
 
 int main(int argc, char * argv[])
@@ -818,6 +956,14 @@ int main(int argc, char * argv[])
 	hash_n = 4;// sbdm
 	rehash_n = 1;// linear probe
 	
+	
+	
+	tree_test();
+	return 0;
+
+
+
+
 
 	uint32_t config = dictionary_config(tbl_n, tree_n, hash_n, rehash_n);  
 	printb(config);
