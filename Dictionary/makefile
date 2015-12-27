@@ -1,13 +1,17 @@
 # Dictionary makefile
 CC=gcc
-EXEC=lookup
-CFLAGS=-g 
-LIBS=
-SOURCES=dictionary.c tree26.c hash.c main.c
-DEPENDANTS=dictionary.h hash.h tree26.h
+EXEC=predict
+CFLAGS=-g -Wall -Wshadow 
+LIBS=-lcurses -lncurses -pthread -lm 
+SOURCES=predictive.c dictionary.c tree26.c hash.c
+DEPENDANTS=predictive.h dictionary.h hash.h tree26.h
 
-lookup : $(SOURCES) $(DEPENDANTS)
-	$(CC) $(CFLAGS) $(SOURCES) -o $(EXEC)
+#lookup : dictionary.h hash.h tree26.h
+#	$(CC) $(CFLAGS) main.c dictionary.c tree26.c hash.c -o lookup
+
+predict : $(SOURCES) $(DEPENDANTS)
+	$(CC) $(CFLAGS) $(SOURCES) -o $(EXEC) $(LIBS)
+
 
 change : 
 	$(CC) change.c 

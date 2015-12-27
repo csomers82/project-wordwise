@@ -54,8 +54,6 @@ Dictionary * dictionary_create(int max, uint32_t config)
 	Dictionary * new = malloc(sizeof(Dictionary));
 	int (*hashP)(const char *, int) = NULL;// a pointer to a function for dictionary use
 	int (*hashS)(const char *, int, int, int) = NULL;// a pointer to a function for dictionary use
-	char ** data;// ptr at hash_table 
-	int i;//index for iterating through hash table data
 	int table = (BITMASK_DATA_TABLE & config) ? 1 : 0;
 	int tree =  (BITMASK_DATA_TREE & config) ? 1 : 0;
 	
@@ -157,9 +155,7 @@ void dictionary_log_statistics(Dictionary * dn)
 	char* b = " ";// blank
 	char banner = '_';
 	int banner_len = 40;
-	int has_table;
-	int has_tree;
-	int fl = banner_len - 8;// field length
+	//int fl = banner_len - 8;// field length
 
 	if(!log) 
 	{	fprintf(stderr, "Error: cannot open log file \"%s\"\n", dn->logfile);
@@ -293,34 +289,38 @@ int dictionary_probe_table(Dictionary * dn, const char * str)
 Dictionary * dictionary_grow(Dictionary * dn)
 {
 	////LOCAL VARIABLES
-	Dictionary * new;// grown table
 	char ** data;// ptr at hash_table data
 	char ** new_table;// the new hash table data
 	int i;// for iterating through hash table
 	int new_loc;// hash index for a str
-	int (*hfunc)(const char* search, int max);// a ptr to the hash func
-	int (*rfunc)(const char* search, int max, int probe_i, int attempt_i);// a ptr to the hash func
 	int max;// max size that will be used
 	int old_max;// reference variable for data iteration
+	/*
+	Dictionary * new;// grown table
+	int (*hfunc)(const char* search, int max);// a ptr to the hash func
+	int (*rfunc)(const char* search, int max, int probe_i, int attempt_i);// a ptr to the hash func
 	int collisions;// a count of bad hashes for a str
 	long save_ec;//
 	long save_sc;//
 	int save_search_n;//
 	float save_avg_ec;//
 	float save_avg_sc;//
+	*/
 	
 	////EXECUTABLE STATEMENTS
 	max = (int)(dn->max_size * dn->growth_factor);
 	old_max = dn->max_size;
 	printf("\e[36mnew size = %d\e[0m\n", max);
+	//save past table data
+	/*
 	hfunc = dn->hash_func;
 	rfunc = dn->hash_second;
-	//save past table data
 	save_ec = dn->t_entry_collisions;
 	save_sc = dn->t_search_collisions;
 	save_search_n = dn->t_hash_searches;
 	save_avg_sc = dn->avg_search_collisions;
 	save_avg_ec = dn->avg_entry_collisions;
+	*/
 	dictionary_log_statistics(dn);
 
 	//clear data for new stats	
@@ -362,11 +362,11 @@ void dictionary_add_entry(Dictionary * dn, const char * str)
 {
 	//LOCAL VARIABLES
 	int hash_val;// hash index for a str
-	int (*hfunc)(const char* search, int max);// a ptr to the hash func
+	//int (*hfunc)(const char* search, int max);// a ptr to the hash func
 	float volume;// the hash table's percentage full 
 	
 	//EXECUTABLE STATEMENTS
-	hfunc = dn->hash_func;
+	//hfunc = dn->hash_func;
 	
 	//hash the str vale
 	hash_val = dictionary_probe_table(dn, str);
