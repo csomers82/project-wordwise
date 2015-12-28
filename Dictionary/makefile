@@ -3,7 +3,7 @@ CC=gcc
 EXEC=predict
 CFLAGS=-g -Wall -Wshadow 
 LIBS=-lcurses -lncurses -pthread -lm 
-SOURCES=predictive.c dictionary.c tree26.c hash.c
+SOURCES=pmain.c paux.c dictionary.c tree26.c hash.c
 DEPENDANTS=predictive.h dictionary.h hash.h tree26.h
 
 #lookup : dictionary.h hash.h tree26.h

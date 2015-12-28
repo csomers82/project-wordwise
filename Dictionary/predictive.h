@@ -19,6 +19,8 @@
 #define FALSE 0
 #define UNINIT -1
 
+/* ERROR HANDLING */
+#define ERRORLOG "errors.log"
 #define EC01 1
 #define EC02 2
 #define EC03 4
@@ -26,7 +28,9 @@
 
 
 
-extern int ERROR;
+extern unsigned int ERROR;
+extern int GLOBAL_X;
+extern int GLOBAL_Y;
 
 /*============================================================*/
 /* MACROS	 */
@@ -82,6 +86,11 @@ extern int ERROR;
 			}\
 		})
 
+#define LOG(log, errmsg)	({\
+			fprintf(stderr	, errmsg);\
+			fprintf(log		, errmsg);\
+		})
+
 /*============================================================*/
 /* STRUCTS */
 
@@ -102,24 +111,41 @@ typedef struct Text {
 	int				hMargin;	// preserve horizontal space 
 	int				vMargin;	// preserve vertical space 
 	int				persistant;	// maintain
-	struct Text *	next;		// next set of text
+	struct Text *	next;		// nextset of text
 } Text;
-
+ 
 
 
 /*============================================================*/
 /* FUNCTIONS */
 
+
+
+
+/************************************************************* 
+ *	Takes the global ERROR value and uses to print the error
+ *	diagnosis to stderr and the error logfile. 
+ *	file:
+ *		maux.c
+ *	args:
+ *		int ERRORCOPY : pass the value of ERROR
+ *	returns:
+ *		void
+ */
+void programErrorOut(int ERRORCOPY);
+
+
+
 /************************************************************* 
  *	Initializes the curses library functionality and creates	
  *	a window that is WIDTH by HEIGHT in dimensions
  *	file:
- *		predictive.c
+ *		pmain.c
  *	args:
  *		int * WIDTH - global variable representing screen width
  *		int * HEIGHT - global variable representing screen height
  *	returns:
- *		WINDOW * win - curses specific opaque window object
+ *		WINDOW * win - curses sp:wqecific opaque window object
  */
 WINDOW * window_0(int * WIDTH, int * HEIGHT);
 
@@ -127,7 +153,7 @@ WINDOW * window_0(int * WIDTH, int * HEIGHT);
 /************************************************************* 
  *	Creates text object to be handled in printing
  *	file:
- *		predictive.c	
+ *		pmain.c	
  *	args:
  *		char *	string	- text that the object represents
  *		char	fore	- foreground or standard if space character
@@ -141,7 +167,7 @@ Text * text_create(char * string, char fore, Text * tail);
 /************************************************************* 
  *	Takes a text object and executes the screen printing
  *	file:
- *		predictive.c	
+ *		pmain.c	
  *	args:
  *		Text *	output	- node of the text queue 
  */
@@ -149,6 +175,28 @@ void text_print(Text * t);
 
 /* void text_destroy(text): MACRO: frees single text object */
 /* void text_position(text, x, y): MACRO: assigns text coords */
+
+/************************************************************* 
+ *	Opens an input fd to read char data from.
+ *	file:
+ *		paux.c
+ *	args:
+ *		char * filename: the filename which is meant to opened
+ *	returns:
+ *		FILE* file
+ */
+FILE * open_file(char * filename);
+
+/************************************************************* 
+ *	Opens an input fd to read char data from.
+ *	file:
+ *		paux.c
+ *	args:
+ *		char * filename: the filename which is meant to opened
+ *	returns:
+ *		FILE * file
+ */
+FILE * open_output_file(char * filename);
 
 
 #endif

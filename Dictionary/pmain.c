@@ -13,7 +13,13 @@
 #include "dictionary.h"
 #include "tree26.h"
 
-int ERROR;
+
+///* GLOBAL VARIABLES *///
+
+unsigned int	ERROR;
+WINDOW *		WIN;
+int				GLOBAL_X;
+int				GLOBAL_Y;
 
 
 #define DEBUG
@@ -109,7 +115,7 @@ void test1()
 /************************************************************* 
  *	Creates text object to be handled in printing
  *	file:
- *		predictive.c	
+ *		pmain.c	
  *	args:
  *		char *	string	- text that the object represents
  *		char	fore	- foreground or standard if space character
@@ -200,7 +206,7 @@ WINDOW * window_0(int * WIDTH, int * HEIGHT)
 /************************************************************* 
  *	Takes a text object and executes the screen printing
  *	file:
- *		predictive.c	
+ *		pmain.c	
  *	args:
  *		Text *	output	- node of the text queue 
  */
@@ -244,8 +250,11 @@ void text_print(Text * t)
 	}
 	//[{ VARIABLES }]
 	char txtc = tolower(t->foreground);
+	char * attr = (t->attributes);
 	int fore = COLOR_WHITE;
-	int back = COLOR_BLACK;
+	int charIndex;
+	int stringLen = strlen(t->string);
+	int rightMargin =  COLS_PER_SCREEN - t->hMargin;
 
 	//[{ FORMATING }]
 	//  foreground/text color	
@@ -262,60 +271,84 @@ void text_print(Text * t)
 		else if(txtc == 'r') fore = COLOR_RED;
 		else if(txtc == 'k') fore = COLOR_BLACK;
 		else ERROR |= EC02;
+		attron(COLOR_PAIR(fore));
 	}
 	//  text attributes
-	if(attr != NULL) {
-		int l;
-		for(l = 0; l < strlen(attr); l++) {
-			if(attr[l] == 'a')		attron(A_ALTCHARSET);
-			else if(attr[l] == 'b') attron(A_BOLD);
-			else if(attr[l] == 'd') attron(A_DIM);
-			else if(attr[l] == 'p') attron(A_PROTECT);
-			else if(attr[l] == 'r') attron(A_REVERSE);
-			else if(attr[l] == 's') attron(A_STANDOUT);
-			else if(attr[l] == 'i') attron(A_INVIS);
-			else if(attr[l] == 'u') attron(A_UNDERLINE);
+	if(attr != NULL) 
+	{	for(charIndex = 0; charIndex < strlen(attr); ++charIndex) 
+		{	if(attr[charIndex] == 'a')		attron(A_ALTCHARSET);
+			else if(attr[charIndex] == 'b') attron(A_BOLD);
+			else if(attr[charIndex] == 'd') attron(A_DIM);
+			else if(attr[charIndex] == 'p') attron(A_PROTECT);
+			else if(attr[charIndex] == 'r') attron(A_REVERSE);
+			else if(attr[charIndex] == 's') attron(A_STANDOUT);
+			else if(attr[charIndex] == 'i') attron(A_INVIS);
+			else if(attr[charIndex] == 'u') attron(A_UNDERLINE);
 			else ERROR |= EC03;
 		}
 	}
 	//  position the cursor to print the text 
-	if(	t->yPos >= t->vMargin && 
-		t->yPos < ROWS_PER_SCREEN - t->vMargin &&
-		t->xPos >= t->hMargin && 
-		t->xPos hMargin < ROWS_PER_SCREEN - t->vMargin)
+	if(	(t->posY >= t->vMargin) && 
+		(t->posY < ROWS_PER_SCREEN - t->vMargin) &&
+		(t->posX >= t->hMargin) && 
+		(t->posX < rightMargin))
 	{
-		move(t->yPos, t->xPos);
+		move(t->posY, t->posX);
 	}
-	else if( !(t->xPos == UNINIT && t->yPos == UNINIT) )
+	else if( !(t->posX == UNINIT && t->posY == UNINIT) )
 	{
 		ERROR |= EC01;
 	}
-	attron(COLOR_PAIR(fore));
-	//[{ PRINTING }]
-	printw("%s", str);	
+	
+	////[{ PRINTING }]
+	if(t->posX + stringLen < rightMargin)
+	{
+		printw("%s", t->string);	
+		getyx(WIN, GLOBAL_Y, GLOBAL_X);
+	}
+	else 
+	{
+		char * keep = strdup(t->string);
+		char * copy = keep;
+		char tempChar;
+		int dist = rightMargin - t->posX;
+		int print_y;
+		do 
+		{	// save data for next print sections
+			getyx(WIN, print_y, tempChar);
+			tempChar = copy[dist];
+			copy[dist] = '\0';	
+			// print data
+			printw("%s", copy);
+			stringLen -= dist;
+			// reset data and cursor 
+			copy[dist] = tempChar;	
+			copy = copy + dist;// pointer arithmatic
+			dist = rightMargin - t->hMargin;
+			move(print_y + 1, t->hMargin);
+			// repeat while there are still chars
+		} while(stringLen > 0); 
 
+		free(keep);
+		getyx(WIN, GLOBAL_Y, GLOBAL_X);
+
+	}
 	// OFF ATTRIBUTES	
 	attroff(COLOR_PAIR(fore));
 	if(txtc != ' ') attroff(fore);
-	if(bckc != ' ') attroff(back);
-	if(attr != NULL) {
-		int l;
-		for(l = 0; l < strlen(attr); l++) {
-			if(attr[l] == 'a')		attroff(A_ALTCHARSET);
-			else if(attr[l] == 'b') attroff(A_BOLD);
-			else if(attr[l] == 'd') attroff(A_DIM);
-			else if(attr[l] == 'p') attroff(A_PROTECT);
-			else if(attr[l] == 'r') attroff(A_REVERSE);
-			else if(attr[l] == 's') attroff(A_STANDOUT);
-			else if(attr[l] == 'i') attroff(A_INVIS);
-			else if(attr[l] == 'u') attroff(A_UNDERLINE);
-			else ERROR |= EC04;
+	if(attr != NULL && !(ERROR & EC03)) {
+		for(charIndex = 0; charIndex < strlen(attr); charIndex++) {
+			if(attr[charIndex] == 'a')		attroff(A_ALTCHARSET);
+			else if(attr[charIndex] == 'b') attroff(A_BOLD);
+			else if(attr[charIndex] == 'd') attroff(A_DIM);
+			else if(attr[charIndex] == 'p') attroff(A_PROTECT);
+			else if(attr[charIndex] == 'r') attroff(A_REVERSE);
+			else if(attr[charIndex] == 's') attroff(A_STANDOUT);
+			else if(attr[charIndex] == 'i') attroff(A_INVIS);
+			else if(attr[charIndex] == 'u') attroff(A_UNDERLINE);
 		}
 	}
-}
-
-
-
+	return;
 }
 
 
@@ -331,10 +364,11 @@ int main(int argc, char * argv[])
 	WINDOW * wnd		= NULL;				// curses opaque window object
 	
 	////PREWINDOW PRINT TESTING
+	
 	test1();
 	fprintf(stderr, "sizeof chtype = %li\n", sizeof(chtype));
 	fprintf(stderr, "sizeof COLOR_BLUE = %li\n", sizeof(COLOR_BLUE));
-/*	fprintf(stderr, "val of COLOR_BLUE = %i\n", COLOR_BLUE);
+	fprintf(stderr, "val of COLOR_BLUE = %i\n", COLOR_BLUE);
 
 	////EXECUTE CURSES SPECIFIC INITIALIZATIONS 
 	wnd = window_0(&screen_width, &screen_height);
@@ -345,6 +379,9 @@ int main(int argc, char * argv[])
 	}
 
 	////PROGRAM INIT
+	WIN = wnd;
+	GLOBAL_X = 0;
+	GLOBAL_Y = 0;
 
 	////PROGRAM LOOP
 	while( loop_continue )
@@ -364,7 +401,7 @@ int main(int argc, char * argv[])
 		old = set_term(new);
 		delscreen(old);
 	}
-*/
+
 	return(0);
 }
 
