@@ -8,7 +8,7 @@
 
 #define MAX_CHAR_LINE 255 
 #define MAX_FAIL 3
-#define MAX_BYTES_PER_BUFFER 65536
+#define MAX_BYTES_PER_BUFFER 262144
 #define DN_WORDBANK_FN "copy-american-english"
 //#define DN_WORDBANK_FN "copy-american-english-abr"
 //#define DN_WORDBANK_FN "ababc"
@@ -295,7 +295,7 @@ MsgQueue * buffered_file_input(FILE * fp)
 		{
 			//fprintf(stderr, "Error: read %ld / %ld bytes\n", n_bytes_read, load_size);
 			//bool_error = 1;
-			ERROR |= EC05;
+			ERROR |= EC0A;
 		}
 		//printf("Read: %s\n", file_character_buffer);
 	
@@ -507,7 +507,7 @@ Tree26 * manage_buffered_file_tree(Tree26 * root)
 		// add each split segment str
 		for(add_i = 0; add_i < n_line_entries; ++add_i) 
 		{	
-			printf("Entry =\"%s\"\n", frags[add_i]);
+			//printf("Entry =\"%s\"\n", frags[add_i]);
 			fflush(stdout);
 			//printf("%sEntry: \"%s\"\tAddress: %p\n", "", frags[add_i], &frags[add_i]);
 			root = tree26_insert(root, frags[add_i]);
@@ -522,7 +522,7 @@ Tree26 * manage_buffered_file_tree(Tree26 * root)
 		printf("\e[33mData segment %2d loaded in [%lf] seconds\e[0m\n", count, ellapsed);
 	}
 	ellapsed = (double) (finish - zero) / CLOCKS_PER_SEC;
-	printf("\e[33mData segment %2d loaded in [%lf] seconds\e[0m\n", count, ellapsed);
+	printf("\e[33mAll dictionary data loaded in [%lf] seconds\e[0m\n",  ellapsed);
 
 	return(root);
 }
@@ -570,33 +570,25 @@ void tree_free(Tree26 * root)
 
 void test2()
 {
-	char * tt = ("0123456789 123456789");
+	char * tt = ("0123456789 123456789 123456789");
 	Text * tx1 = text_create(strdup(tt), 'r', NULL);
 	Text * tx2 = text_create(strdup(tt), 'y', tx1);
 	Text * tx3 = text_create(strdup(tt), 'g', tx2);
 	Text * tx4 = text_create(strdup(tt), 'c', tx3);
 	Text * tx5 = text_create(strdup(tt), 'b', tx4);
 	Text * tx6 = text_create(strdup(tt), 'm', tx5);
-	int quit = FALSE;
+	
 	text_position(tx1, 10, 10);
-	text_position(tx2, 159 - 24, 12);
-	text_position(tx3, 160 - 24, 14);
+	text_position(tx2, 159 - 34, 12);
+	text_position(tx3, 160 - 19, 14);
 	text_position(tx4, 10, 2);
 	text_position(tx5, 1, 16);
-	text_position(tx6, 100, 39);
+	text_position(tx6, 100, 44);
+	
 	getch();
 
-	text_print(tx1);
-	text_destroy(tx1);
-	quit = programErrorOut(ERROR);
-	printf("error = %d\n", quit);
-		
-
-
-
-
-	quit = programErrorOut(ERROR);
-	printf("error = %d\n", quit);
+	text_manager(tx1);
+	printw("waaat");
 }
 
 
@@ -611,7 +603,7 @@ void test1()
 	new = text_create(str, col, NULL);
 	SHOWp(new);	
 
-	text_toggle(new );
+	text_toggle(new, TRUE );
 	text_destroy(new);
 	if(ERROR)
 	{ 
@@ -619,14 +611,18 @@ void test1()
 		printf("sizeof(new) = %ld\n", sizeof(new));
 		fprintf(stderr, "Error: sizeof error.\n");
 	}
-	text_toggle(new );
+	text_toggle(new, FALSE );
 	text_destroy(new);
 	return;
 }
 
 void tree_test()
 {
-
+	
+	
+	clock_t start;
+	clock_t finish;
+	double ellapsed;
 	Tree26 * root = tree26_create();
 	root->str = strdup("");
 	/*
@@ -648,9 +644,47 @@ void tree_test()
 	return;
 	*/
 	manage_buffered_file_tree(root);
-	tree_print(root, 0);
-	tree_free(root);
+	//tree_print(root, 0);
+	start = clock();
+	tree26_destroy(root);
+	finish = clock();
+	ellapsed = (double) (finish - start) / CLOCKS_PER_SEC;
+	printf("\e[33mTree deallocated in [%lf] seconds\e[0m\n", ellapsed);
 	return;
+}
+
+/************************************************************* 
+ *	Takes the global ERROR value and uses to print the error
+ *	diagnosis to stderr and the error logfile. 
+ *	file:
+ *		paux.c
+ *	args:
+ *		void
+ *	returns:
+ *		Text * titleQueue: contains the title lines
+ */
+Text * build_title(void) 
+{
+	//LOCAL VARIABLES
+	char *	title1		= "     _       ___   ___   ___       ____  _   __    _     ___   ____   ";
+	char *	title2		= "~   \\ \\    // / \\ | |_) | | \\     | |_  | | / /`_ | | | | |_) | |_    ~\n";
+	char *	title3		= "     \\_\\/\\/ \\_\\_/ |_| \\ |_|_/     |_|   |_| \\_\\_/ \\_\\_/ |_| \\ |_|__ \n";
+	char	title_fore	= 'r';
+	int		titleX		= STANDARD_H_MARGIN * 4;
+	int		titleStartY	= STANDARD_V_MARGIN * 2;
+	Text *	qHead		= NULL;
+	Text *	qTail		= NULL;
+	
+	//EXECUTABLES STATEMENTS
+	qTail = text_create(strdup(title1), title_fore, NULL);
+	text_position(qTail, titleStartY++, titleX);
+	qHead = qTail;
+	qTail = text_create(strdup(title2), title_fore, qTail);
+	text_position(qTail, titleStartY++, titleX);
+	qTail = text_create(strdup(title3), title_fore, qTail);
+	text_position(qTail, titleStartY, titleX);
+	getyx(WIN, GLOBAL_Y, GLOBAL_X);
+	return(qHead);
 }
 
 /************************************************************* 
@@ -714,7 +748,7 @@ int programErrorOut(int ERRORCOPY)
 		}
 	}
 	////TEXT DESTROY MACRO ERRORS
-	if(ERRORCOPY  & (EC04 | EC05 | EC06 | EC07 | EC08)) 
+	if(ERRORCOPY  & (EC04 | EC05 | EC06 | EC07 | EC08 | EC09)) 
 	{
 		fprintf(log, "%s%s\n", b, sect2);
 		if(ERRORCOPY & EC04)
@@ -731,6 +765,15 @@ int programErrorOut(int ERRORCOPY)
 		}
 		if(ERRORCOPY & EC08)
 		{	LOG(log, "EC08: text_toggle: invalid [Text*] argument\n");
+		}
+		if(ERRORCOPY & EC09)
+		{	LOG(log, "EC09: text_toggle: invalid [bool ] toggle value\n");
+		}
+	}
+	if(ERRORCOPY  & (EC0A)) 
+	{
+		if(ERRORCOPY & EC0A)
+		{	LOG(log, "EC0A: buffered_file_input: small mess\n");
 		}
 	}
 	fclose(log);

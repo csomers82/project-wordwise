@@ -37,7 +37,7 @@ Text * text_create(char * string, char fore, Text * tail)
 {
 	//CREATE NEW TEXT OBJECT
 	Text * new = malloc(sizeof(Text));
-	if(tail) tail->next = tail;
+	if(tail) tail->next = new;
 	
 	//INITIALIZE VALUES
 	new->string = string;
@@ -208,6 +208,7 @@ void text_print(Text * t)
 	else if( !(t->posX == UNINIT && t->posY == UNINIT) )
 	{
 		ERROR |= EC01;
+		return;
 	}
 	
 	////[{ PRINTING }]
@@ -261,6 +262,33 @@ void text_print(Text * t)
 	return;
 }
 
+/************************************************************* 
+ *	Takes a Text object QUEUE and executes the screen printing
+ *	The entire Text obj queue will be printed and if not desig
+ *	-nated to be persistant, will be free'd. This is a higher
+ *	level function than the actual print function, and calls
+ *	text_print for each queue node.
+ *	file:
+ *		pmain.c	
+ *	args:
+ *		Text *	outputQueue	- node of the text queue 
+ */
+void text_manager(Text * head)
+{
+	Text * queue = head;
+	Text * next = NULL;
+	int errQuit = FALSE;
+	while(queue && !errQuit)	
+	{
+		next = queue->next;
+		text_print(queue);
+		text_destroy(queue);
+		queue = next;
+		errQuit = programErrorOut(ERROR);
+	}
+	return;
+}
+
 
 /************************************************************* 
  *	Main: contains the 
@@ -273,11 +301,10 @@ int main(int argc, char * argv[])
 	int			screen_width	= COLS_PER_SCREEN;	// window cursor widths
 	wchar_t		user			= '\0';
 	WINDOW *	wnd				= NULL;				// curses opaque window object
-	//Text *		q_head			= NULL;
-	//Text *		q_tail			= NULL;
-	char *		title			= "~ word figure ~";
-	char		title_fore		= 'r';
-	
+	Text *		queue			= NULL;
+
+	tree_test();
+	return 0;
 	////EXECUTE CURSES SPECIFIC INITIALIZATIONS 
 	wnd = window_0(&screen_width, &screen_height);
 	if(!wnd) 
@@ -291,17 +318,14 @@ int main(int argc, char * argv[])
 	GLOBAL_X = 0;
 	GLOBAL_Y = 0;
 	ERROR = 0u;
-	//q_head = text_create(title, title_fore, NULL);
-	//text_position(q_head, 10, 10
-	
+	queue = build_title();
 
 	////PROGRAM LOOP
 	while( loop_continue )
 	{
-		test2();	
-		refresh();
+		text_manager(queue);
 		user = getch();
-		if(user == 'q') loop_continue = (loop_continue + 1) % 2;
+		loop_continue = FALSE;
 	}
 
 	////PROGRAM CLOSE

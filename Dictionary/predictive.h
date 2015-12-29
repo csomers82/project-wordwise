@@ -10,14 +10,19 @@
 
 /*============================================================*/
 /* CONSTANTS */
+
+/* SCREEN PROPERTIES */
 #define COLS_PER_SCREEN	160
 #define ROWS_PER_SCREEN 45
+#define STANDARD_H_MARGIN 4
+#define STANDARD_V_MARGIN 2
 
-#define STANDARD_H_MARGIN 2
-#define STANDARD_V_MARGIN 4
+/* PROGRAM VALUES */
 #define TRUE 1
 #define FALSE 0
 #define UNINIT -1
+#define LOGTRUE 1U
+#define LOGFALSE 1U
 
 /* ERROR HANDLING */
 #define ERRORLOG "errors.log"
@@ -49,12 +54,15 @@
 
 
 extern unsigned int ERROR;
+extern unsigned int ERRQUIT;
+
+extern WINDOW * WIN;
 extern int GLOBAL_X;
 extern int GLOBAL_Y;
 
 /*============================================================*/
 /* MACROS	 */
-#define text_position(textPtr, X, Y) ({\
+#define text_position(textPtr, Y, X) ({\
 			if( sizeof(X) == sizeof(int) )\
 			{\
 				if( sizeof(Y) == sizeof(int) )\
@@ -77,13 +85,16 @@ extern int GLOBAL_Y;
 			}\
 		})
 
-#define text_toggle(textPtr) ({\
-			if(( sizeof(textPtr) == sizeof(void*)) && \
-			   ( textPtr->persistant == TRUE || \
-			     textPtr->persistant == FALSE )) \
+#define text_toggle(textPtr, oneOrZero) ({\
+			if( sizeof(textPtr) == sizeof(void*)) \
 			{\
-				textPtr->persistant = (textPtr->persistant) \
-					? FALSE : TRUE;\
+				if((oneOrZero == TRUE || oneOrZero == FALSE )) \
+				{\
+					textPtr->persistant = oneOrZero;\
+				}\
+				else {\
+					ERROR |= EC09;\
+				}\
 			}\
 			else {\
 				ERROR |= EC08;\
@@ -169,6 +180,7 @@ typedef struct Text {
  */
 void test1(void);
 void test2(void);
+void tree_test(void);
 
 
 
@@ -176,7 +188,7 @@ void test2(void);
  *	Takes the global ERROR value and uses to print the error
  *	diagnosis to stderr and the error logfile. 
  *	file:
- *		maux.c
+ *		paux.c
  *	args:
  *		int ERRORCOPY: pass the value of ERROR
  *	returns:
@@ -185,6 +197,17 @@ void test2(void);
 int programErrorOut(int ERRORCOPY);
 
 
+/************************************************************* 
+ *	Takes the global ERROR value and uses to print the error
+ *	diagnosis to stderr and the error logfile. 
+ *	file:
+ *		paux.c
+ *	args:
+ *		void
+ *	returns:
+ *		Text * titleQueue: contains the title lines
+ */
+Text * build_title(void);
 
 /************************************************************* 
  *	Initializes the curses library functionality and creates	
@@ -215,7 +238,9 @@ Text * text_create(char * string, char fore, Text * tail);
 
 
 /************************************************************* 
- *	Takes a text object and executes the screen printing
+ *	Takes a text object and executes the screen printing. This
+ *	is a single instance of a print function and calls curses
+ *	library attribute and print functions
  *	file:
  *		pmain.c	
  *	args:
@@ -225,6 +250,23 @@ void text_print(Text * t);
 
 /* void text_destroy(text): MACRO: frees single text object */
 /* void text_position(text, x, y): MACRO: assigns text coords */
+
+
+/************************************************************* 
+ *	Takes a text object QUEUE and executes the screen printing
+ *	The entire Text obj queue will be printed and if not desig
+ *	-nated to be persistant, will be free'd. This is a higher
+ *	level function than the actual print function, and calls
+ *	text_print for each queue node.
+ *	file:
+ *		pmain.c	
+ *	args:
+ *		Text *	outputQueue	- node of the text queue 
+ */
+void text_manager(Text * t);
+
+
+
 
 /************************************************************* 
  *	Opens an input fd to read char data from.

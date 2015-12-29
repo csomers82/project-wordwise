@@ -194,8 +194,9 @@ void tree26_destroy(Tree26 * vic)
 	Tree26 * curr;// current node in question
 	Tree26 * last;// for easier reference
 	Tree26 * stack[20];// the storage for the previous node "CLRS.pdf"
-	int bri_stack[20];// stores the previous node branch indices in parallel
+	int bri_stack[20] = {0};// stores the previous node branch indices in parallel
 	int reset;// control flag
+	unsigned int bogus = 0u;
 	
 	////EXECUTABLE STATEMENTS
 	curr = vic;
@@ -203,35 +204,40 @@ void tree26_destroy(Tree26 * vic)
 	br_i = 0;
 	stack[depth] = curr;
 	//FIX SO THAT FIRST NODE IS STACK
-	while(!tree26_isempty(stack[depth]))
+	while(!tree26_isempty(stack[depth]) && bogus < 200000u)
 	{
+		bogus += 1;
 		reset = FALSE;
 		//check each branch of the current node
-		while(!reset && br_i < N_BRANCHES)
+		for(br_i = bri_stack[depth] + 1; br_i < N_BRANCHES; ++br_i)
 		{
 			///case_0: branch has children - push node
-			if(curr->branch[br_i] &&
-			  (!tree26_isempty(curr->branch[br_i])))
+			if(curr->branch[br_i] )//&& (!tree26_isempty(curr->branch[br_i])))
 			{
-				//adjust cur branch index in current stack, push on next
+				//save current stack level details
 				bri_stack[depth] = br_i;
-				++depth;
 				stack[depth] = curr;
-				//set cur to new root just found
+
+				//push on next node
+				++depth;
 				curr = curr->branch[br_i];
-				//reset br_i, will become 0
-				br_i = -1;
 				reset = TRUE;
+				break;
 			}
-			++br_i;
 		}
 		///case_1: branch is leaf - pop node
-		if(!reset && tree26_isempty(curr))
+		if(!reset && (br_i == N_BRANCHES))//&& tree26_isempty(curr))
 		{
 			//free node data
 			free(curr->str);
 			free(curr->branch);
 			free(curr);
+			//pop stack data
+			--depth;
+			curr = stack[depth];
+			br_i = bri_stack[depth];
+			curr->branch[br_i] = NULL;
+			
 			// deattach last link (not necessary?) 
 			if(depth > 0)
 			{
@@ -239,9 +245,6 @@ void tree26_destroy(Tree26 * vic)
 				lbi = bri_stack[depth - 1];
 				last->branch[lbi] = NULL;
 			}
-			--depth;
-			curr = stack[depth];
-			br_i = bri_stack[depth];
 		}
 	}
 	
