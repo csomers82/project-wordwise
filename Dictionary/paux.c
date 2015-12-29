@@ -251,7 +251,7 @@ MsgQueue * buffered_file_input(FILE * fp)
 	char *	extra_word_buffer	= NULL;// 
 	char	delimiter			= '\n';// character that separates words in the file
 	int		bool_large_word		= FALSE;// special case for word spanning buffer 
-	int		bool_error			= FALSE;// local error code
+	//int		bool_error			= FALSE;// local error code
 	int		check_index			= 0;// a value for checking to see where the last 
 	int		save_index			= 0;// 
 	int		assembly_index		= 0;//
@@ -294,7 +294,8 @@ MsgQueue * buffered_file_input(FILE * fp)
 		if(n_bytes_read != load_size)
 		{
 			//fprintf(stderr, "Error: read %ld / %ld bytes\n", n_bytes_read, load_size);
-			bool_error = 1;
+			//bool_error = 1;
+			ERROR |= EC05;
 		}
 		//printf("Read: %s\n", file_character_buffer);
 	
@@ -530,7 +531,8 @@ void tree_print(Tree26 * root, int depth)
 {
 	if( root )
 	{
-		int i, j;
+		int i;
+		//int j;
 		for(i = 0; i < depth; ++i)
 			printf(". ");
 		printf("%s\n", root->str);
@@ -563,6 +565,62 @@ void tree_free(Tree26 * root)
 		free(root->branch);
 		free(root);
 	}
+	return;
+}
+
+void test2()
+{
+	char * tt = ("0123456789 123456789");
+	Text * tx1 = text_create(strdup(tt), 'r', NULL);
+	Text * tx2 = text_create(strdup(tt), 'y', tx1);
+	Text * tx3 = text_create(strdup(tt), 'g', tx2);
+	Text * tx4 = text_create(strdup(tt), 'c', tx3);
+	Text * tx5 = text_create(strdup(tt), 'b', tx4);
+	Text * tx6 = text_create(strdup(tt), 'm', tx5);
+	int quit = FALSE;
+	text_position(tx1, 10, 10);
+	text_position(tx2, 159 - 24, 12);
+	text_position(tx3, 160 - 24, 14);
+	text_position(tx4, 10, 2);
+	text_position(tx5, 1, 16);
+	text_position(tx6, 100, 39);
+	getch();
+
+	text_print(tx1);
+	text_destroy(tx1);
+	quit = programErrorOut(ERROR);
+	printf("error = %d\n", quit);
+		
+
+
+
+
+	quit = programErrorOut(ERROR);
+	printf("error = %d\n", quit);
+}
+
+
+void test1()
+{
+	ERROR = FALSE;
+	char * str = strdup("testing123...");
+	char col = 'b';
+	Text * new = NULL;
+
+	SHOWp(new);	
+	new = text_create(str, col, NULL);
+	SHOWp(new);	
+
+	text_toggle(new );
+	text_destroy(new);
+	if(ERROR)
+	{ 
+		printf("sizeof(Text) = %ld\n", sizeof(Text));
+		printf("sizeof(new) = %ld\n", sizeof(new));
+		fprintf(stderr, "Error: sizeof error.\n");
+	}
+	text_toggle(new );
+	text_destroy(new);
 	return;
 }
 
@@ -603,20 +661,21 @@ void tree_test()
  *	args:
  *		int ERRORCOPY : pass the value of ERROR
  *	returns:
- *		void
+ *		int ENDPROGRAM: bool to end program
  */
-void programErrorOut(int ERRORCOPY) 
+int programErrorOut(int ERRORCOPY) 
 {
 	//are there errors?
 	if( !ERRORCOPY )
 	{
-		return;
+		return FALSE;
 	}
 
 	//open error log for printing
 	FILE * log = fopen(ERRORLOG, "a");
 	char * title = "WORD PREDICTION ERROR LOG";
 	char * sect1 = "PRINT FUNCTION ERRORS";
+	char * sect2 = "MACRO USE ERRORS";
 	time_t log_time;
 	int i;
 	char * b = " ";
@@ -625,7 +684,7 @@ void programErrorOut(int ERRORCOPY)
 
 	if(!log) 
 	{	fprintf(stderr, "Error: cannot open log file \"%s\"\n", ERRORLOG);
-		return;
+		return TRUE;
 	}
 
 	//// HEADER
@@ -654,7 +713,27 @@ void programErrorOut(int ERRORCOPY)
 		{	LOG(log, "EC03: Unrecognized attribute identifier value.\n");
 		}
 	}
+	////TEXT DESTROY MACRO ERRORS
+	if(ERRORCOPY  & (EC04 | EC05 | EC06 | EC07 | EC08)) 
+	{
+		fprintf(log, "%s%s\n", b, sect2);
+		if(ERRORCOPY & EC04)
+		{	LOG(log, "EC04: text_position: invalid [Text*] argument\n");
+		}
+		if(ERRORCOPY & EC05)
+		{	LOG(log, "EC05: text_position: invalid [int Y] argument\n");
+		}
+		if(ERRORCOPY & EC06)
+		{	LOG(log, "EC06: text_position: invalid [int X] argument\n");
+		}
+		if(ERRORCOPY & EC07)
+		{	LOG(log, "EC07: text_destroy: invalid [Text*] argument\n");
+		}
+		if(ERRORCOPY & EC08)
+		{	LOG(log, "EC08: text_toggle: invalid [Text*] argument\n");
+		}
+	}
 	fclose(log);
-	return;
+	return TRUE;
 }
 

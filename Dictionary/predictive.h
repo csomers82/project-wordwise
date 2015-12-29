@@ -25,6 +25,26 @@
 #define EC02 2
 #define EC03 4
 #define EC04 8
+#define EC05 16
+#define EC06 32
+#define EC07 64
+#define EC08 128
+#define EC09 256
+#define EC0A 512
+#define EC0B 1024
+#define EC0C 2048
+#define EC0D 4096
+#define EC0E 8192
+#define EC0F 16384
+#define EC10 32768
+#define EC11 65536
+#define EC12 131072
+#define EC13 262144
+#define EC14 524288
+#define EC15 1048576
+#define EC16 2097152
+#define EC17 4194304
+#define EC18 8388608
 
 
 
@@ -42,18 +62,18 @@ extern int GLOBAL_Y;
 					if( sizeof(textPtr) == sizeof(void*) )\
 					{\
 						textPtr->posX = X;\
-						text->posY = Y;\
+						textPtr->posY = Y;\
 					}\
 					else {\
-						ERROR = TRUE;\
+						ERROR |= EC04;\
 					}\
 				}\
 				else {\
-					ERROR = TRUE;\
+					ERROR |= EC05;\
 				}\
 			}\
 			else {\
-				ERROR = TRUE;\
+				ERROR |= EC06;\
 			}\
 		})
 
@@ -66,7 +86,7 @@ extern int GLOBAL_Y;
 					? FALSE : TRUE;\
 			}\
 			else {\
-				ERROR = TRUE;\
+				ERROR |= EC08;\
 			}\
 		})
 
@@ -82,7 +102,7 @@ extern int GLOBAL_Y;
 				}\
 			}\
 			else {\
-				ERROR = TRUE;\
+				ERROR |= EC07;\
 			}\
 		})
 
@@ -90,6 +110,30 @@ extern int GLOBAL_Y;
 			fprintf(stderr	, errmsg);\
 			fprintf(log		, errmsg);\
 		})
+
+#define DEBUG
+#ifdef DEBUG
+	#define MISUSE fprintf(stderr, "\nError: improper use of '%s'", __func__)
+	#define STAFF fprintf(stderr, "\n================================")
+	#define SSEP fprintf(stderr, "\n--------------------------------")
+	#define SHOWi(x) fprintf(stderr,"[%4s] = %d\n", #x, x)
+	#define SHOWf(x) fprintf(stderr,"[%4s] = %f\n", #x, x)
+	#define SHOWl(x) fprintf(stderr,"[%4s] = %Ld\n",#x, x)
+	#define SHOWc(x) fprintf(stderr,"[%4s] = %c\n", #x, x)
+	#define SHOWp(x) fprintf(stderr,"[%4s] = %p\n", #x, x)
+	#define SHOWs(x) fprintf(stderr,"[%4s] = %s\n", #x, x)
+#else
+	#define MISUSE
+	#define STAFF
+	#define SSEP
+	#define SPACE(x)
+	#define SHOWi(x) 
+	#define SHOWl(x)
+	#define SHOWf(x)
+	#define SHOWc(x)
+	#define SHOWp(x)
+	#define SHOWs(x) 
+#endif
 
 /*============================================================*/
 /* STRUCTS */
@@ -120,6 +164,12 @@ typedef struct Text {
 /* FUNCTIONS */
 
 
+/************************************************************* 
+ * test function 
+ */
+void test1(void);
+void test2(void);
+
 
 
 /************************************************************* 
@@ -128,11 +178,11 @@ typedef struct Text {
  *	file:
  *		maux.c
  *	args:
- *		int ERRORCOPY : pass the value of ERROR
+ *		int ERRORCOPY: pass the value of ERROR
  *	returns:
- *		void
+ *		int ENDPROGRAM: bool to end program
  */
-void programErrorOut(int ERRORCOPY);
+int programErrorOut(int ERRORCOPY);
 
 
 

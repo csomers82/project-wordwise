@@ -22,96 +22,6 @@ int				GLOBAL_X;
 int				GLOBAL_Y;
 
 
-#define DEBUG
-#ifdef DEBUG
-	#define MISUSE fprintf(stderr, "\nError: improper use of '%s'", __func__)
-	#define STAFF fprintf(stderr, "\n================================")
-	#define SSEP fprintf(stderr, "\n--------------------------------")
-	#define SHOWi(x) fprintf(stderr,"[%4s] = %d\n", #x, x)
-	#define SHOWf(x) fprintf(stderr,"[%4s] = %f\n", #x, x)
-	#define SHOWl(x) fprintf(stderr,"[%4s] = %Ld\n",#x, x)
-	#define SHOWc(x) fprintf(stderr,"[%4s] = %c\n", #x, x)
-	#define SHOWp(x) fprintf(stderr,"[%4s] = %p\n", #x, x)
-	#define SHOWs(x) fprintf(stderr,"[%4s] = %s\n", #x, x)
-/*	#ifdef COLOUR
-		#define AA 31
-		#define BB 32
-		#define CC 33
-		#define DD 34
-		#define EE 35
-		#define SHADE  30 // {30-K, 31-R, 32-G, 33-Y, 34-B, 35-M, 36-C, 37-W}
-		#define SHADE2 30 // {30-K, 31-R, 32-G, 33-Y, 34-B, 35-M, 36-C, 37-W}
-		#ifdef SHOWFILE
-			#define FILINF fprintf(stderr, "\n\e[%dm%s", SHADE, __FILE__)
-			#define WHERE FILINF fprintf(stderr, "\e[%dm%d\e[%dm {%s}==>\e[0m", SHADE2, __LINE__, SHADE, __func__)
-		#else
-			#define FILINF fprintf(stderr, "\n")
-			#define WHERE FILINF fprintf(stderr, "\e[%dm%d\e[%dm {%s}==>\e[0m", SHADE2, __LINE__, SHADE, __func__)
-		#endif	
-		#define SHOWi(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %d\e[0m", AA, #x, x)
-		#define SHOWl(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %Ld\e[0m", FF, #x, x)
-		#define SHOWf(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %f\e[0m", BB, #x, x)
-		#define SHOWc(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %c\e[0m", CC, #x, x)
-		#define SHOWp(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %p\e[0m", DD, #x, x)
-		#define SHOWs(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %s\e[0m", EE, #x, x)
-	#else	
-		#ifdef SHOWFILE
-			#define FILINF fprintf(stderr, "\n%s:", __FILE__)
-			#define WHERE FILINF fprintf(stderr, "::%s:%d %s==> ", __LINE__, __func__)
-		#else
-			#define FILINF 
-			#define WHERE fprintf(stderr, "\n::%s:%d %s==> ", __LINE__, __func__)
-		#endif	
-		#define SHOWi(x) WHERE fprintf(stderr,"[%4s] = %d", #x, x)
-		#define SHOWf(x) WHERE fprintf(stderr,"[%4s] = %f", #x, x)
-		#define SHOWl(x) WHERE fprintf(stderr,"[%4s] = %Ld",#x, x)
-		#define SHOWc(x) WHERE fprintf(stderr,"[%4s] = %c", #x, x)
-		#define SHOWp(x) WHERE fprintf(stderr,"[%4s] = %p", #x, x)
-		#define SHOWs(x) WHERE fprintf(stderr,"[%4s] = %s", #x, x)
-	#endif
-*/
-#else
-	#define MISUSE
-	#define STAFF
-	#define SSEP
-	#define SPACE(x)
-	#define SHOWi(x) 
-	#define SHOWl(x)
-	#define SHOWf(x)
-	#define SHOWc(x)
-	#define SHOWp(x)
-	#define SHOWs(x) 
-	#define AA 
-	#define BB 
-	#define CC 
-	#define DD 
-	#define EE
-#endif
-
-void test1()
-{
-	ERROR = FALSE;
-	char * str = strdup("testing123...");
-	char col = 'b';
-	Text * new = NULL;
-
-	SHOWp(new);	
-	new = text_create(str, col, NULL);
-	SHOWp(new);	
-
-	text_toggle(new );
-	text_destroy(new);
-	if(ERROR)
-	{ 
-		printf("sizeof(Text) = %ld\n", sizeof(Text));
-		printf("sizeof(new) = %ld\n", sizeof(new));
-		fprintf(stderr, "Error: sizeof error.\n");
-	}
-	text_toggle(new );
-	text_destroy(new);
-	return;
-}
-
 /************************************************************* 
  *	Creates text object to be handled in printing
  *	file:
@@ -353,23 +263,21 @@ void text_print(Text * t)
 
 
 /************************************************************* 
- *
+ *	Main: contains the 
  */
 int main(int argc, char * argv[])
 {
 	////PROGRAM VARIABLES
-	int loop_continue	= TRUE;				// true/false continue program
-	int screen_height	= ROWS_PER_SCREEN;	// window cursor heigths
-	int screen_width	= COLS_PER_SCREEN;	// window cursor widths
-	WINDOW * wnd		= NULL;				// curses opaque window object
+	int			loop_continue	= TRUE;				// true/false continue program
+	int			screen_height	= ROWS_PER_SCREEN;	// window cursor heigths
+	int			screen_width	= COLS_PER_SCREEN;	// window cursor widths
+	wchar_t		user			= '\0';
+	WINDOW *	wnd				= NULL;				// curses opaque window object
+	//Text *		q_head			= NULL;
+	//Text *		q_tail			= NULL;
+	char *		title			= "~ word figure ~";
+	char		title_fore		= 'r';
 	
-	////PREWINDOW PRINT TESTING
-	
-	test1();
-	fprintf(stderr, "sizeof chtype = %li\n", sizeof(chtype));
-	fprintf(stderr, "sizeof COLOR_BLUE = %li\n", sizeof(COLOR_BLUE));
-	fprintf(stderr, "val of COLOR_BLUE = %i\n", COLOR_BLUE);
-
 	////EXECUTE CURSES SPECIFIC INITIALIZATIONS 
 	wnd = window_0(&screen_width, &screen_height);
 	if(!wnd) 
@@ -382,13 +290,18 @@ int main(int argc, char * argv[])
 	WIN = wnd;
 	GLOBAL_X = 0;
 	GLOBAL_Y = 0;
+	ERROR = 0u;
+	//q_head = text_create(title, title_fore, NULL);
+	//text_position(q_head, 10, 10
+	
 
 	////PROGRAM LOOP
 	while( loop_continue )
 	{
-		loop_continue = FALSE;
-		printw("Ah yeah!\n");
-		getch();
+		test2();	
+		refresh();
+		user = getch();
+		if(user == 'q') loop_continue = (loop_continue + 1) % 2;
 	}
 
 	////PROGRAM CLOSE
