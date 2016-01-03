@@ -303,7 +303,7 @@ int main(int argc, char * argv[])
 	WINDOW *	wnd				= NULL;				// curses opaque window object
 	Text *		queue			= NULL;
 
-	tree_test();
+	test_main();
 	return 0;
 	////EXECUTE CURSES SPECIFIC INITIALIZATIONS 
 	wnd = window_0(&screen_width, &screen_height);

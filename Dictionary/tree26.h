@@ -3,9 +3,9 @@
 
 #include <string.h>
 
-
 //==============================================================================
 /*@* GLOBAL CONSTANTS *@*/
+#define MAX_EXPECTED_WORD_LENGTH 30
 #define N_BRANCHES 27
 #define TRUE 1
 #define FALSE 0
@@ -18,7 +18,8 @@
 typedef struct Tree26 {
 	char * str;// section of string present
 	struct Tree26 ** branch;// a child branch for each next availible letter
-	int	bool_complete;// TRUE or FALSE, is the string a valid string 
+	int	bool_complete_low;// TRUE or FALSE, is string a valid word 
+	int	bool_complete_cap;// TRUE or FALSE, is string a proper noun 
 	int n_chars;// the current strlen()
 } Tree26;
 
@@ -47,6 +48,18 @@ Tree26 * tree26_create();
  *	out:	void
  */
 Tree26 * tree26_insert(Tree26 * root, const char * store);
+
+
+/***
+ *	Takes a string with special/extended ascii table values and
+ *	attempt to interpret them into a newly allocated string.
+ *	Upon failure, NULL is returned. On success, a copy of the 
+ *	psuedo-copy of the string is returned.
+ *	in:		char * onsertion_entry:	assumed non-NULL, containing sp. char
+ *	out:	char * interpreted: NULL or 0-128 ASCII values
+ */
+char * tree26_simplify_string(char * insertion_entry);
+
 
 /***
  *	Returns a int equivalent boolean whether the root has children or not

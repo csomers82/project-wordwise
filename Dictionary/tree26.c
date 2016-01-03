@@ -2,7 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <assert.h>
 #include "tree26.h"
+#include "predictive.h"//ONLY NECESSARY TO PROJECT WORDFIGURE
+					   //FOR DEBUG STATEMENT AVAILABILITY
 
 /*
 typedef struct Tree26 {
@@ -32,7 +35,8 @@ Tree26 * tree26_create()
 		sprout->branch[branch] = NULL;
 	}
 	sprout->n_chars = 0;
-	sprout->bool_complete = FALSE;
+	sprout->bool_complete_low = FALSE;
+	sprout->bool_complete_cap = FALSE;
 	// assign root string to empty
 	sprout->str = NULL;//strdup("");
 	return sprout;
@@ -65,11 +69,16 @@ Tree26 * tree26_insert(	Tree26 * root,
 	{
 		if(ADJUST(savee[length]) < 0)
 		{
-			fprintf(stderr, "Error: unexpected symbol\n");
-			fprintf(stderr, "savee  = %s\n", savee);
+			/*
 			fprintf(stderr, "index  = %d\n", length);
 			fprintf(stderr, "\n");
+			//fprintf(stderr, "Error: unexpected symbol\n");
+			//fprintf(stderr, "%s\n", savee);
+			*/
+			char * attempt;// attempt to simplify the entry
+			attempt = tree26_simplify_string((char *) savee);
 			free((char *) savee);
+			if(attempt) break;
 			return(root);
 		}
 	}
@@ -97,30 +106,35 @@ Tree26 * tree26_insert(	Tree26 * root,
 			// final destination node, validate string
 			if(str_i + 1 == length)
 			{
-				tree->bool_complete = TRUE;
 				int res = strcmp(savee, tree->str);
 				if( !res )
 				{
-					free(tree->str);
-					tree->str = (char *) savee;
+					tree->bool_complete_low = TRUE;
+					//free(tree->str);
+					//tree->str = (char *) savee;
 					printf("Existing word validated.\n");
 					return(root);
 				}
 				else 
 				{
+					//fprintf(stderr, "Error: target-position / string-definition mismatch\n");
+					//fprintf(stderr, "savee    = .%s.\n", savee);
+					//fprintf(stderr, "tree-str = .%s.\n", tree->str);
 					if( res > 0 )
 					{
+						//fprintf(stderr, "l\n");
+						tree->bool_complete_low = TRUE;
+
 						free(tree->str);
 						tree->str = (char *) savee;
 					}
 					else 
 					{
-						free( (char *) savee);
+						tree->bool_complete_cap = TRUE;
+						//fprintf(stderr, "U\n");
+						//free( (char *) savee);
 					}
-					fprintf(stderr, "Error: target-position / string-definition mismatch\n");
-					fprintf(stderr, "savee    = .%s.\n", savee);
-					fprintf(stderr, "tree-str = .%s.\n", tree->str);
-					fprintf(stderr, "\n");
+					//fprintf(stderr, "\n");
 					return(root);
 				}
 			}
@@ -142,7 +156,14 @@ Tree26 * tree26_insert(	Tree26 * root,
 			if(str_i == length)
 			{
 				sprout->str = (char *) savee;
-				sprout->bool_complete = TRUE;
+				if(savee[0] >= 96 && savee[0] <= 122) 
+				{
+					sprout->bool_complete_low = TRUE;
+				}
+				else {
+					sprout->bool_complete_cap = TRUE;
+				}
+
 			}
 			else
 			{
@@ -163,6 +184,98 @@ Tree26 * tree26_insert(	Tree26 * root,
 
 }
 
+
+/***
+ *	Takes a string with special/extended ascii table values and
+ *	attempt to interpret them into a newly allocated string.
+ *	Upon failure, NULL is returned. On success, a copy of the 
+ *	psuedo-copy of the string is returned.
+ *	in:		char * onsertion_entry:	assumed non-NULL, containing sp. char
+ *	out:	char * interpreted: NULL or 0-128 ASCII values
+ */
+char * tree26_simplify_string(char * insertion_entry)
+{
+	/*
+	////LOCAL VARIABLES
+	int cindex;
+	int sindex;
+	int ascii_i;
+	int n_sp_characters = 8;
+	int length = strlen(insertion_entry);
+	long unsigned int * special_char_array[8] = {
+		"áäâ",
+		"éèê",
+		"óöô",
+		"üû"
+		"ç",
+		"í",
+		"ñ",
+		"Å"
+	}; 
+		/ * { "\303\ ä,   â },
+		{ é,   è,   ê},
+		{ ó ,  ö ,  ô},
+		{ü , û},
+		{ç },
+		{í },
+		{ñ },
+		{Å }* /
+	/ *ä
+	â
+	é
+	è
+	ê
+	ó
+	ö
+	ô
+	ü
+	û
+	ç
+	í
+	ñ
+	Å* /
+
+	char * interpreted_array = "aeoucinA";
+	char * interpreted = malloc(sizeof(char) * (length + 1));
+	int bool_okay = 1;
+
+	////EXECUTABLE STATMENTS
+	for(cindex = 0; cindex < length; ++cindex)
+	{
+		//set intpr. value for now, extract char as int
+		interpreted[cindex] = insertion_entry[cindex];
+		ascii_i = (int) insertion_entry[cindex];
+
+		//check for character outside of bounds !(A-Z,a-z, or ')
+		if(	!(ascii_i >= 65 && ascii_i <= 90) ||
+			!(ascii_i >= 96 && ascii_i <= 122))
+		{
+			//for all of the possible sp.ch.'s, check against each
+			bool_okay = 0;
+			for(sindex = 0; sindex < n_sp_characters; ++sindex)
+			{
+				//sp.ch. match was found, break and loop
+				if( strchr(special_char_array[sindex], ascii_i) )
+				{
+					interpreted[cindex] = interpreted_array[sindex];
+					bool_okay = 1;
+					break;
+				}
+			}
+			//out of bound character cannot be simplified; fail
+			if( !bool_okay )
+			{
+				free(interpreted);
+				return(NULL);
+			}
+		}
+	}
+
+	return(interpreted);
+	*/
+	return(NULL);
+}
+
 /***
  *	Returns a int equivalent boolean whether the root has children or not
  *	in:		Tree26 * root: tree source location
@@ -170,6 +283,9 @@ Tree26 * tree26_insert(	Tree26 * root,
  */
 int tree26_isempty(Tree26 * root)
 {
+	if(!root)
+	{	return(FALSE * 2);
+	}
 	int i;// for iterating through the branches
 	for(i = 0; i < N_BRANCHES; ++i)
 	{	if(root->branch[i]) 
@@ -193,52 +309,77 @@ void tree26_destroy(Tree26 * vic)
 	int lbi;// for an easier reference during popping procedure
 	Tree26 * curr;// current node in question
 	Tree26 * last;// for easier reference
-	Tree26 * stack[20];// the storage for the previous node "CLRS.pdf"
-	int bri_stack[20] = {0};// stores the previous node branch indices in parallel
+	Tree26 * stack[MAX_EXPECTED_WORD_LENGTH];// the storage for the previous node "CLRS.pdf"
+	int bri_stack[MAX_EXPECTED_WORD_LENGTH] = {0};// stores the previous node branch indices in parallel
 	int reset;// control flag
 	unsigned int bogus = 0u;
+	Tree26 ** child_array = NULL;
 	
 	////EXECUTABLE STATEMENTS
 	curr = vic;
 	depth = 0;
 	br_i = 0;
 	stack[depth] = curr;
+		STAFF;
+		SHOWp(stack[depth]);
+		SHOWp(curr);
+		SHOWs(curr->str);
+		SHOWi(depth);
+		SHOWi(bri_stack[depth]);
 	//FIX SO THAT FIRST NODE IS STACK
-	while(!tree26_isempty(stack[depth]) && bogus < 200000u)
+	//while(!tree26_isempty(stack[depth]) && bogus < 200000u)
+	while(depth >= 0 && bogus < 200000u)
 	{
+		
 		bogus += 1;
 		reset = FALSE;
 		//check each branch of the current node
-		for(br_i = bri_stack[depth] + 1; br_i < N_BRANCHES; ++br_i)
+		SSEP;
+		for(br_i = bri_stack[depth]; br_i < N_BRANCHES; ++br_i)
 		{
+			SHOWi(br_i);
+			SHOWp(curr->branch[br_i]);
 			///case_0: branch has children - push node
 			if(curr->branch[br_i] )//&& (!tree26_isempty(curr->branch[br_i])))
 			{
+				SHOWs("Branch Found, depth increasing");
 				//save current stack level details
 				bri_stack[depth] = br_i;
-				stack[depth] = curr;
 
 				//push on next node
 				++depth;
 				curr = curr->branch[br_i];
+				stack[depth] = curr;
 				reset = TRUE;
 				break;
 			}
+			//free(curr->branch[br_i]);
 		}
 		///case_1: branch is leaf - pop node
 		if(!reset && (br_i == N_BRANCHES))//&& tree26_isempty(curr))
 		{
+			SSEP;
+			SHOWs("Leaf Node Case: no reset, all branches NULL");
 			//free node data
 			free(curr->str);
-			free(curr->branch);
+			child_array = (*curr).branch;
+			free(child_array);
 			free(curr);
+
+			stack[depth] = NULL;
+			bri_stack[depth] = 0;
+
 			//pop stack data
 			--depth;
-			curr = stack[depth];
-			br_i = bri_stack[depth];
-			curr->branch[br_i] = NULL;
 			
-			// deattach last link (not necessary?) 
+			if(depth >= 0) 
+			{
+				//update references
+				curr = stack[depth];
+				br_i = bri_stack[depth];
+				//disconnect node (absolutely necessary)
+				curr->branch[br_i] = NULL;
+			}
 			if(depth > 0)
 			{
 				last = stack[depth - 1];
@@ -246,8 +387,15 @@ void tree26_destroy(Tree26 * vic)
 				last->branch[lbi] = NULL;
 			}
 		}
+		SPACE;
+		STAFF;
+		SHOWp(stack[depth]);
+		SHOWp(curr);
+		SHOWs(curr->str);
+		SHOWi(depth);
+		SHOWi(bri_stack[depth]);
 	}
-	
+	SPACE;	
 }
 
 

@@ -9,8 +9,9 @@
 #define MAX_CHAR_LINE 255 
 #define MAX_FAIL 3
 #define MAX_BYTES_PER_BUFFER 262144
-#define DN_WORDBANK_FN "copy-american-english"
-//#define DN_WORDBANK_FN "copy-american-english-abr"
+//#define DN_WORDBANK_FN "copy-american-english"
+//#define DN_WORDBANK_FN "macaroni"
+#define DN_WORDBANK_FN "copy-american-english-abr"
 //#define DN_WORDBANK_FN "ababc"
 
 #define TRUE 1
@@ -503,7 +504,10 @@ Tree26 * manage_buffered_file_tree(Tree26 * root)
 		// pop data, split data
 		q_front = unqueue_read_free(q_front, &buffer);	
 		frags = explode(buffer, delims, &n_line_entries);
-
+		if(!frags || !n_line_entries)
+		{
+			printf("\e[31mError: data in some way unreadable\n");
+		}
 		// add each split segment str
 		for(add_i = 0; add_i < n_line_entries; ++add_i) 
 		{	
@@ -568,8 +572,48 @@ void tree_free(Tree26 * root)
 	return;
 }
 
+void test_main()
+{
+	// Text struct creation, handling
+	//test1();
+
+	// Text manager printing, error catching
+	//test2();
+
+	
+	// Tree struct creation, insertion, deletion
+	tree_test();
+
+	// Tree26 special character handling function
+	//test3();
+	//char wide[2] = {'\303','\242'};
+	//printf("sizeof(%C) = %ld\n", (*wide), sizeof(wchar_t));
+	//printf("\n\n\n");
+}
+
+
+void test3()
+{
+	/* Test the tree26_simplify_string() function against
+	 * a host of strings containing non-standard ascii 
+	 * values. Tests by minimum should include a test for
+	 * each special char set and a test for characters non-
+	 * interpretable. The function should not need to be
+	 * tested against strings without sp characters (precond
+	 * -ition) */
+
+	/* nope! cannot figure out how to contain or encode wide
+	 * character functions, print them, properly compare them,
+	 * or otherwise. Some time later */
+
+}
+
 void test2()
 {
+	/* Test the integrity of the print manager and its
+	 * ability to correctly assign errors or correct for
+	 * printing accross a margin */
+
 	char * tt = ("0123456789 123456789 123456789");
 	Text * tx1 = text_create(strdup(tt), 'r', NULL);
 	Text * tx2 = text_create(strdup(tt), 'y', tx1);
@@ -590,10 +634,12 @@ void test2()
 	text_manager(tx1);
 	printw("waaat");
 }
-
-
+ 
+ 
 void test1()
 {
+	/* Test creating and value setting macros of the Text
+	 * object. */
 	ERROR = FALSE;
 	char * str = strdup("testing123...");
 	char col = 'b';

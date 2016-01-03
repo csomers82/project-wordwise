@@ -122,22 +122,60 @@ extern int GLOBAL_Y;
 			fprintf(log		, errmsg);\
 		})
 
-#define DEBUG
+#define SHOWFILE
+#define COLOUR
 #ifdef DEBUG
-	#define MISUSE fprintf(stderr, "\nError: improper use of '%s'", __func__)
 	#define STAFF fprintf(stderr, "\n================================")
 	#define SSEP fprintf(stderr, "\n--------------------------------")
-	#define SHOWi(x) fprintf(stderr,"[%4s] = %d\n", #x, x)
-	#define SHOWf(x) fprintf(stderr,"[%4s] = %f\n", #x, x)
-	#define SHOWl(x) fprintf(stderr,"[%4s] = %Ld\n",#x, x)
-	#define SHOWc(x) fprintf(stderr,"[%4s] = %c\n", #x, x)
-	#define SHOWp(x) fprintf(stderr,"[%4s] = %p\n", #x, x)
-	#define SHOWs(x) fprintf(stderr,"[%4s] = %s\n", #x, x)
+	#define SPACE fprintf(stderr, "\n\n")
+	#ifndef COLOUR
+		#define MISUSE fprintf(stderr, "\nError: improper use of '%s'", __func__)
+		#define SHOWi(x) fprintf(stderr,"[%4s] = %d\n", #x, x)
+		#define SHOWf(x) fprintf(stderr,"[%4s] = %f\n", #x, x)
+		#define SHOWl(x) fprintf(stderr,"[%4s] = %Ld\n",#x, x)
+		#define SHOWc(x) fprintf(stderr,"[%4s] = %c\n", #x, x)
+		#define SHOWp(x) fprintf(stderr,"[%4s] = %p\n", #x, x)
+		#define SHOWs(x) fprintf(stderr,"[%4s] = %s\n", #x, x)
+	#else
+		// {30-K, 31-R, 32-G, 33-Y, 34-B, 35-M, 36-C, 37-W}
+		#define AA 32
+		#define BB 37
+		#define CC 33
+		#define DD 35
+		#define EE 31
+		#define SHADE  34 
+		#define SHADE2 34 
+		#ifdef SHOWFILE
+			#define FILINF fprintf(stderr, "\n\e[%dm%s", SHADE, __FILE__);
+			#define WHERE FILINF fprintf(stderr, "\e[%dm%d\e[%dm {%s}==>\e[0m", SHADE2, __LINE__, SHADE, __func__);
+		#else
+			#define FILINF fprintf(stderr, "\n");
+			#define WHERE FILINF fprintf(stderr, "\e[%dm%d\e[%dm {%s}==>\e[0m", SHADE2, __LINE__, SHADE, __func__);
+		#endif	
+		#define SHOWi(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %d\e[0m", AA, #x, x);
+		#define SHOWl(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %Ld\e[0m", BB, #x, x);
+		#define SHOWc(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %c\e[0m", CC, #x, x);
+		#define SHOWp(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %p\e[0m", DD, #x, x);
+		#define SHOWs(x) ({\
+			WHERE\
+			int length = strlen(x);\
+			char * checkthis = malloc((length + 3) * sizeof(char));\
+			memset(checkthis, '\0', (length + 3) * sizeof(char));\
+			sprintf(checkthis, "\"%s\"", x);\
+			if(strcmp(#x, checkthis)) {\
+				fprintf(stderr,"\e[%dm[%4s] = %s\e[0m", EE, #x, x);\
+			}\
+			else {\
+				fprintf(stderr,"\e[%dm[%4s] = %s\e[0m", EE, "debug", x);\
+			}\
+			free(checkthis);\
+		})
+	#endif
 #else
 	#define MISUSE
 	#define STAFF
 	#define SSEP
-	#define SPACE(x)
+	#define SPACE
 	#define SHOWi(x) 
 	#define SHOWl(x)
 	#define SHOWf(x)
@@ -178,8 +216,10 @@ typedef struct Text {
 /************************************************************* 
  * test function 
  */
+void test_main(void);
 void test1(void);
 void test2(void);
+void test3(void);
 void tree_test(void);
 
 
