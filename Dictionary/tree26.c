@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <wchar.h>
 #include <assert.h>
 #include "tree26.h"
 #include "predictive.h"//ONLY NECESSARY TO PROJECT WORDFIGURE
@@ -75,8 +76,9 @@ Tree26 * tree26_insert(	Tree26 * root,
 			//fprintf(stderr, "Error: unexpected symbol\n");
 			//fprintf(stderr, "%s\n", savee);
 			*/
-			char * attempt;// attempt to simplify the entry
-			attempt = tree26_simplify_string((char *) savee);
+			char * attempt = NULL;// attempt to simplify the entry
+			//printf("%s\n", (char*)savee);
+			//attempt = tree26_simplify_string((char *) savee);
 			free((char *) savee);
 			if(attempt) break;
 			return(root);
@@ -195,51 +197,37 @@ Tree26 * tree26_insert(	Tree26 * root,
  */
 char * tree26_simplify_string(char * insertion_entry)
 {
-	/*
 	////LOCAL VARIABLES
-	int cindex;
-	int sindex;
+	int cindex, sindex, windex;
 	int ascii_i;
 	int n_sp_characters = 8;
 	int length = strlen(insertion_entry);
-	long unsigned int * special_char_array[8] = {
-		"áäâ",
-		"éèê",
-		"óöô",
-		"üû"
-		"ç",
-		"í",
-		"ñ",
-		"Å"
+	wchar_t * special_char_array[8] = {
+		L"áäâ",
+		L"éèê",
+		L"óöô",
+		L"üû"
+		L"ç",
+		L"í",
+		L"ñ",
+		L"Å"
 	}; 
-		/ * { "\303\ ä,   â },
+	int wcalens[8] = {3, 3, 3, 2, 1, 1, 1, 1};
+		/* { "\303\ ä,   â },
 		{ é,   è,   ê},
 		{ ó ,  ö ,  ô},
 		{ü , û},
 		{ç },
 		{í },
 		{ñ },
-		{Å }* /
-	/ *ä
-	â
-	é
-	è
-	ê
-	ó
-	ö
-	ô
-	ü
-	û
-	ç
-	í
-	ñ
-	Å* /
-
+		{Å }*/
+	//wchar_t * input = malloc(sizeof(wchar_t) * (length + 1));
 	char * interpreted_array = "aeoucinA";
 	char * interpreted = malloc(sizeof(char) * (length + 1));
 	int bool_okay = 1;
 
 	////EXECUTABLE STATMENTS
+	//mbsrtowcs(input, &insertion_entry, length, NULL); 
 	for(cindex = 0; cindex < length; ++cindex)
 	{
 		//set intpr. value for now, extract char as int
@@ -247,19 +235,32 @@ char * tree26_simplify_string(char * insertion_entry)
 		ascii_i = (int) insertion_entry[cindex];
 
 		//check for character outside of bounds !(A-Z,a-z, or ')
-		if(	!(ascii_i >= 65 && ascii_i <= 90) ||
-			!(ascii_i >= 96 && ascii_i <= 122))
+		if(	!(	(ascii_i >= 65 && ascii_i <= 90) ||
+				(ascii_i >= 96 && ascii_i <= 122)   ) )
 		{
+			//allocate tools for conversion
+			char bytes[2];
+			bytes[0] = insertion_entry[cindex];
+			bytes[1] = insertion_entry[cindex + 1];
+			wchar_t converted = (wchar_t) 0;
+			mbrtowc(&converted, (bytes), sizeof(char) * 2, NULL); 
+
+			printf("wc = %C\n", converted);
 			//for all of the possible sp.ch.'s, check against each
 			bool_okay = 0;
 			for(sindex = 0; sindex < n_sp_characters; ++sindex)
 			{
 				//sp.ch. match was found, break and loop
-				if( strchr(special_char_array[sindex], ascii_i) )
+				printf("sca[si] = %S\n", special_char_array[sindex]);
+				for(windex = 0; windex < wcalens[sindex]; ++windex)
 				{
-					interpreted[cindex] = interpreted_array[sindex];
-					bool_okay = 1;
-					break;
+					printf("wc = %C \n", special_char_array[sindex][windex]);
+					if(special_char_array[sindex][windex] == converted)
+					{
+						interpreted[cindex] = interpreted_array[sindex];
+						bool_okay = 1;
+						break;
+					}
 				}
 			}
 			//out of bound character cannot be simplified; fail
@@ -272,8 +273,8 @@ char * tree26_simplify_string(char * insertion_entry)
 	}
 
 	return(interpreted);
-	*/
-	return(NULL);
+	
+	//return(NULL);
 }
 
 /***

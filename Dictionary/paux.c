@@ -511,6 +511,7 @@ Tree26 * manage_buffered_file_tree(Tree26 * root)
 		// add each split segment str
 		for(add_i = 0; add_i < n_line_entries; ++add_i) 
 		{	
+			//if(add_i > 4100)
 			//printf("Entry =\"%s\"\n", frags[add_i]);
 			fflush(stdout);
 			//printf("%sEntry: \"%s\"\tAddress: %p\n", "", frags[add_i], &frags[add_i]);
@@ -605,6 +606,25 @@ void test3()
 	/* nope! cannot figure out how to contain or encode wide
 	 * character functions, print them, properly compare them,
 	 * or otherwise. Some time later */
+/*
+	char ** problemSet = {
+		"\303\251tude",
+		"kr\303\263na",
+		"ch\303\241teau",
+		"vicu\303\261a",
+		"\303\205ngstr\303\266m"
+	};
+	int testIndex;
+	for(testIndex = 0; testIndex < 5; ++testIndex)
+	{
+		char * solution = NULL;
+		printf("problem = %s\n", problemSet[testIndex]);
+		solution = tree26_simplify_string(problemSet[testIndex]);
+		printf("solution = %s\n", solution);
+		printf("\n");
+		free(solution);
+	}
+*/
 
 }
 

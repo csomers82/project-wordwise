@@ -325,7 +325,7 @@ int main(int argc, char * argv[])
 	{
 		text_manager(queue);
 		user = getch();
-		loop_continue = FALSE;
+		loop_continue = (user == 'c') ? TRUE : FALSE;
 	}
 
 	////PROGRAM CLOSE
