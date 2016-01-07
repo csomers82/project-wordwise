@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
+#include <wchar.h>
+#include <wctype.h>
 #include "dictionary.h"
 #include "tree26.h"
 #include "predictive.h"
@@ -651,7 +653,7 @@ void test2()
 	
 	getch();
 
-	text_manager(tx1);
+	text_manager(&tx1);
 	printw("waaat");
 }
  
@@ -725,11 +727,12 @@ void tree_test()
  *	file:
  *		paux.c
  *	args:
- *		void
+ *		Text ** head: ptr to headptr node
+ *		Text ** tail: ptr to tailptr node
  *	returns:
  *		Text * titleQueue: contains the title lines
  */
-Text * build_title(void) 
+void build_title(Text ** head, Text ** tail) 
 {
 	//LOCAL VARIABLES
 	char *	title1		= "     _       ___   ___   ___       ____  _   __    _     ___   ____   ";
@@ -750,8 +753,176 @@ Text * build_title(void)
 	qTail = text_create(strdup(title3), title_fore, qTail);
 	text_position(qTail, titleStartY, titleX);
 	getyx(WIN, GLOBAL_Y, GLOBAL_X);
-	return(qHead);
+	*head = qHead;
+	*tail = qTail;
+	return;
 }
+
+/************************************************************* 
+ *	allocates texts objects for a box.
+ *	file:
+ *		paux.c
+ *	args:
+ *		wchar_t		horch:		frame horizontal character
+ *		wchar_t		verch:		frame vertical character
+ *		wchar_t		cornerch:	frame corner character
+ *		int			x:			x origin
+ *		int			y:			y origin
+ *		int			width:		number of columns
+ *		int			height:		number of rows
+ *		text *		tail:		tail of text queue
+ *	returns:
+ *		text *		newtail:	tail location after appending
+ */
+Text * build_box(wchar_t horch,		
+			 	 wchar_t verch, 
+				 wchar_t cornerch,	
+				 int x,
+				 int y,
+				 int width,	
+				 int height,		
+				 Text * tail)
+{
+	return(NULL);
+	
+}
+
+
+/************************************************************* 
+ *	Allocates a program object to store important program 
+ *	values
+ *	file:
+ *		paux.c
+ *	returns:
+ *		Program * new: contains major program values
+ */
+Program * program_create()
+{
+	Program *	new		= malloc(sizeof(Program));
+	new->loop_continue	= TRUE;				// true/false continue program
+	new->screen_height	= ROWS_PER_SCREEN;	// window cursor heigths
+	new->screen_width	= COLS_PER_SCREEN;	// window cursor widths
+	new->control_code	= CTRL_DONOTHING;
+	new->user_input		= L'\0';
+	new->ebox_active	= 0;
+	new->tree			= NULL;
+	new->wnd			= NULL;				// curses opaque window object
+	new->queue_head		= NULL;
+	new->queue_tail		= NULL;
+	new->ebox_array		= NULL;
+	return(new);
+}
+
+/************************************************************* 
+ *	Allocates a program object to store important program 
+ *	values
+ *	file:
+ *		paux.c
+ *	returns:
+ *		Program * new: contains major program values
+ */
+void program_destroy(Program * vic)
+{
+	vic->wnd = NULL;
+	vic->ptrX = NULL;
+	vic->ptrY = NULL;
+	vic->queue_head = NULL;
+	vic->queue_tail = NULL;
+	free(vic);
+	vic = NULL;
+	return;
+}
+
+/*************************************************************
+ *	Evaluates a keyboard input and returns the appropriate 
+ *	control code for program redirection
+ *	file:
+ *		paux.c
+ *	args:
+ *		wchar_t	userKey - the input
+ *	returns:
+ *		int		ctrlCode - redirects the program loop
+ */
+int input_eval(wchar_t userKey)
+{/*
+	#define CTRL_ADDCHAR	( 1)
+	#define CTRL_CLEAR		(-2)
+	#define CTRL_CURSOR		( 2)
+	#define CTRL_DONOTHING	( 0)
+	#define CTRL_DELCHAR	(-3)
+	#define CTRL_EXECUTE	( 4)
+	#define CTRL_EXIT		(-1)
+	#define CTRL_SCROLL		( 3)
+	#define CTRL_SELECT		( 5)
+	#define CTRL_SWITCH		( 6)
+	#define CTRL_UNDO		(-4)
+ */
+	// printing a character
+	if(iswalpha(userKey))	
+	{	
+		return CTRL_ADDCHAR;
+	}
+	// selecting a word
+	else if(iswdigit(userKey))
+	{
+		return CTRL_SELECT;
+	}
+	// scrolling up or down
+	else if(userKey == L'+' || userKey == L'-')
+	{
+		return CTRL_SCROLL;
+	}
+	// switch between edit boxes
+	else if(userKey == L'\t')
+	{
+		return CTRL_SWITCH;
+	}
+	// entering commands
+	else if(userKey == L'\n')
+	{
+		return CTRL_EXECUTE;
+	}
+	// special key user
+	else if(userKey & KEY_CODE_YES)
+	{
+		// cursor movement
+		if(	(userKey == KEY_UP || userKey == KEY_DOWN) ||
+			(userKey == KEY_RIGHT || userKey == KEY_LEFT) )
+		{	
+			return CTRL_CURSOR;
+		}
+		// entering commands
+		else if(userKey == KEY_ENTER)
+		{
+			return CTRL_EXECUTE;
+		}
+		// quiting program
+		else if(userKey == KEY_HOME || userKey == KEY_END)
+		{
+			return CTRL_EXIT;
+		}
+		// clear the edit box
+		else if(userKey == KEY_SDC)
+		{
+			return CTRL_CLEAR;
+		}
+		// delete a character
+		else if(userKey == KEY_DC || userKey == KEY_BACKSPACE)
+		{
+			return CTRL_DELCHAR;
+		}
+		// undo last key
+		else if(userKey == KEY_F(2) || userKey == KEY_F(3))
+		{
+			return CTRL_UNDO;
+		}
+	}
+	return CTRL_DONOTHING;
+}
+
+
+
+
 
 /************************************************************* 
  *	Takes the global ERROR value and uses to print the error

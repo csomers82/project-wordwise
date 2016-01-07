@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
+#include <wctype.h>
 #include <curses.h>
 #include <pthread.h>
 #include <time.h>
@@ -22,7 +24,27 @@
 #define FALSE 0
 #define UNINIT -1
 #define LOGTRUE 1U
-#define LOGFALSE 1U
+#define LOGFALSE 0U
+#define N_EDIT_BOXES 2
+#define EDIT_BOX_MAX 30
+
+/* CONTROL CODES */
+#define CHECKCODE(x) ({\
+	move(20,20);\
+	printw("%s = %d", #x, x);\
+	scroll(WIN);\
+})
+#define CTRL_ADDCHAR	( 1)
+#define CTRL_CLEAR		(-2)
+#define CTRL_CURSOR		( 2)
+#define CTRL_DONOTHING	( 0)
+#define CTRL_DELCHAR	(-3)
+#define CTRL_EXECUTE	( 4)
+#define CTRL_EXIT		(-1)
+#define CTRL_SCROLL		( 3)
+#define CTRL_SELECT		( 5)
+#define CTRL_SWITCH		( 6)
+#define CTRL_UNDO		(-4)
 
 /* ERROR HANDLING */
 #define ERRORLOG "errors.log"
@@ -101,7 +123,6 @@ extern int GLOBAL_Y;
 			}\
 		})
 
-
 #define text_destroy(textPtr) ({\
 			if( sizeof(textPtr) == sizeof(void*) ) \
 			{\
@@ -109,6 +130,9 @@ extern int GLOBAL_Y;
 				{\
 					free(textPtr->string);\
 					free(textPtr->attributes);\
+					textPtr->string = NULL;\
+					textPtr->attributes = NULL;\
+					textPtr->next = NULL;\
 					free(textPtr);\
 				}\
 			}\
@@ -208,8 +232,43 @@ typedef struct Text {
 } Text;
  
 
+/****
+ *	Editbox Struct: frames an instance of editable text entered
+ *	by the user. Program as is contains 2.
+ */
+typedef struct Editbox {
+	char *  label;				// static test label
+	char	text[EDIT_BOX_MAX];	// text buffer by letter 
+	int		max;				// max size of buffer
+	int		index;				// which character the cursor is at
+	int		text_x_orig;		// what coord the .text[0] resides
+	int		text_y_orig;		// what coord the .text[0] resides
+} Ebox;
+
+
+/****
+ *	Program Struct: Holds most important program values for
+ *	availability accross functions.
+ */
+typedef struct Program {
+	WINDOW *	wnd;			// at global WIN
+	int *		ptrX;			// at global x
+	int *		ptrY;			// at global y
+	Tree26 *	tree;			// handle of tree26 root  node	
+	Text *		queue_head;		// front of text output queue	
+	Text *		queue_tail;		// attachement end of text dequeue
+	Ebox *		ebox_array;		// ARRAY of edit boxes
+	int			ebox_active;	// index of selected edit box
+	int			loop_continue;	// loop control variable
+	int			control_code;	// user input interpreted
+	wchar_t		user_input;		// user input raw
+	int			screen_height;	// window cursor heigths
+	int			screen_width;	// window cursor widths
+} Program;
 
 /*============================================================*/
+/*============================================================*/
+
 /* FUNCTIONS */
 
 
@@ -222,6 +281,53 @@ void test2(void);
 void test3(void);
 void tree_test(void);
 
+
+
+/************************************************************* 
+ *	allocates texts objects for a box.
+ *	file:
+ *		paux.c
+ *	args:
+ *		wchar_t		horch:		frame horizontal character
+ *		wchar_t		verch:		frame vertical character
+ *		wchar_t		cornerch:	frame corner character
+ *		int			x:			x origin
+ *		int			y:			y origin
+ *		int			width:		number of columns
+ *		int			height:		number of rows
+ *		text *		tail:		tail of text queue
+ *	returns:
+ *		text *		newtail:	tail location after appending
+ */
+Text * build_box(wchar_t horch,		
+			 	 wchar_t verch, 
+				 wchar_t cornerch,	
+				 int x,
+				 int y,
+				 int width,	
+				 int height,		
+				 Text * tail);
+ 
+
+/************************************************************* 
+ *	Allocates a program object to store important program 
+ *	values
+ *	file:
+ *		paux.c
+ *	returns:
+ *		Program * new: contains major program values
+ */
+Program * program_create();
+
+/************************************************************* 
+ *	Allocates a program object to store important program 
+ *	values
+ *	file:
+ *		paux.c
+ *	returns:
+ *		Program * new: contains major program values
+ */
+void program_destroy(Program * vic);
 
 
 /************************************************************* 
@@ -243,11 +349,12 @@ int programErrorOut(int ERRORCOPY);
  *	file:
  *		paux.c
  *	args:
- *		void
+ *		Text ** head: ptr to headptr node
+ *		Text ** tail: ptr to tailptr node
  *	returns:
  *		Text * titleQueue: contains the title lines
  */
-Text * build_title(void);
+void build_title(Text ** h, Text ** t);
 
 /************************************************************* 
  *	Initializes the curses library functionality and creates	
@@ -262,6 +369,17 @@ Text * build_title(void);
  */
 WINDOW * window_0(int * WIDTH, int * HEIGHT);
 
+/*************************************************************
+ *	Evaluates a keyboard input and returns the appropriate 
+ *	control code for program redirection
+ *	file:
+ *		paux.c
+ *	args:
+ *		wchar_t	userKey - the input
+ *	returns:
+ *		int		ctrlCode - redirects the program loop
+ */
+int input_eval(wchar_t userKey);
 
 /************************************************************* 
  *	Creates text object to be handled in printing
@@ -303,9 +421,18 @@ void text_print(Text * t);
  *	args:
  *		Text *	outputQueue	- node of the text queue 
  */
-void text_manager(Text * t);
+void text_manager(Text ** t);
 
-
+/************************************************************* 
+ *	Takes the text queue and clears all of its memort for
+ *	program exit. All queue nodes will be clear regradless of
+ *	presistance state.
+ *	file:
+ *		pmain.c	
+ *	args:
+ *		Text *	text queue 
+ */
+void text_clear_all(Text * vic);
 
 
 /************************************************************* 

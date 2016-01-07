@@ -273,9 +273,9 @@ void text_print(Text * t)
  *	args:
  *		Text *	outputQueue	- node of the text queue 
  */
-void text_manager(Text * head)
+void text_manager(Text ** ptrAtHead)
 {
-	Text * queue = head;
+	Text * queue = *ptrAtHead;
 	Text * next = NULL;
 	int errQuit = FALSE;
 	while(queue && !errQuit)	
@@ -286,59 +286,115 @@ void text_manager(Text * head)
 		queue = next;
 		errQuit = programErrorOut(ERROR);
 	}
+	*ptrAtHead = NULL;
+	return;
+}
+
+/************************************************************* 
+ *	Takes the text queue and clears all of its memory for
+ *	program exit. All vic nodes will be clear regardless of
+ *	presistance state.
+ *	file:
+ *		pmain.c	
+ *	args:
+ *		Text *	text queue 
+ */
+void text_clear_all(Text * vic)
+{
+	Text * next = NULL;
+	while(vic)	
+	{
+		next = vic->next;
+		text_toggle(vic, FALSE);
+		text_destroy(vic);
+		vic = next;
+	}
+	programErrorOut(ERROR);
+	vic = NULL;
 	return;
 }
 
 
 /************************************************************* 
- *	Main: contains the 
+ *	Main: uses values on the program struct to execute the 
+ *	program's functions. The main program loop executes the 
+ *	following instrunctions:
+ *		1) Print all queued text
+ *		2) Accept input from user
+ *		3) Handle input and execute reaction
  */
 int main(int argc, char * argv[])
 {
-	////PROGRAM VARIABLES
-	int			loop_continue	= TRUE;				// true/false continue program
-	int			screen_height	= ROWS_PER_SCREEN;	// window cursor heigths
-	int			screen_width	= COLS_PER_SCREEN;	// window cursor widths
-	wchar_t		user			= '\0';
-	WINDOW *	wnd				= NULL;				// curses opaque window object
-	Text *		queue			= NULL;
+	////TEST THE PROGRAM FUNCTIONS
+	//test_main();
+	//return 0;
 
-	test_main();
-	return 0;
+	////PROGRAM VARIABLES
+	Program *	program	= program_create();
+	int			cc		= CTRL_DONOTHING;	
+
 	////EXECUTE CURSES SPECIFIC INITIALIZATIONS 
-	wnd = window_0(&screen_width, &screen_height);
-	if(!wnd) 
+	program->wnd = window_0(&program->screen_width, &program->screen_height);
+	if(!program->wnd) 
 	{
 		endwin();
 		goto clear_program;
 	}
+	ERROR = wsetscrreg(program->wnd, 16, ROWS_PER_SCREEN-1);
+	scrollok(program->wnd, true);
+	if( ERROR == ERR )
+	{	
+		printw("Error with scroll reg.\n");
+	}
 
 	////PROGRAM INIT
-	WIN = wnd;
+	build_title(&program->queue_head, &program->queue_tail);
+	WIN = program->wnd;
 	GLOBAL_X = 0;
 	GLOBAL_Y = 0;
 	ERROR = 0u;
-	queue = build_title();
+	program->ptrX = &GLOBAL_X;
+	program->ptrY = &GLOBAL_Y;
 
 	////PROGRAM LOOP
-	while( loop_continue )
+	while(program->loop_continue & !(ERROR))
 	{
-		text_manager(queue);
-		user = getch();
-		loop_continue = (user == 'c') ? TRUE : FALSE;
+		text_manager(&program->queue_head);
+		program->user_input = getch();
+		program->control_code = input_eval(program->user_input);
+		if(!ERROR && program->control_code) 
+		{	
+			cc = program->control_code;
+			if(		cc == CTRL_ADDCHAR	){ CHECKCODE(cc); }
+			else if(cc == CTRL_CLEAR	){ CHECKCODE(cc); }
+			else if(cc == CTRL_CURSOR	){ CHECKCODE(cc); }
+			else if(cc == CTRL_DELCHAR	){ CHECKCODE(cc); }
+			else if(cc == CTRL_EXECUTE	){ CHECKCODE(cc); }
+			else if(cc == CTRL_EXIT		){ program->loop_continue = FALSE;	}
+			else if(cc == CTRL_SCROLL	){ CHECKCODE(cc); }
+			else if(cc == CTRL_SELECT	){ CHECKCODE(cc); }
+			else if(cc == CTRL_SWITCH	){ CHECKCODE(cc); }
+			else if(cc == CTRL_UNDO		){ CHECKCODE(cc); }
+		}
+		//loop_continue = (user == 'c') ? TRUE : FALSE;
+	}
+	if( ERROR )
+	{	programErrorOut(ERROR);
 	}
 
 	////PROGRAM CLOSE
 	clear();
 	endwin();
 	clear_program:
-	if(isendwin()) {
+	text_clear_all(program->queue_head);
+	program_destroy(program);
+	if(isendwin()) 
+	{
 		SCREEN * new = NULL;// bogus
 		SCREEN * old;// for del
 		old = set_term(new);
 		delscreen(old);
 	}
-
 	return(0);
 }
 
