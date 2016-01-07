@@ -770,6 +770,7 @@ void build_title(Text ** head, Text ** tail)
  *		int			y:			y origin
  *		int			width:		number of columns
  *		int			height:		number of rows
+ *		char		color:		color of text
  *		text *		tail:		tail of text queue
  *	returns:
  *		text *		newtail:	tail location after appending
@@ -781,10 +782,42 @@ Text * build_box(wchar_t horch,
 				 int y,
 				 int width,	
 				 int height,		
+				 char color,
 				 Text * tail)
 {
-	return(NULL);
+	/// LOCAL VARIABLES
+	int index, nLines;
+	wchar_t buffer[COLS_PER_SCREEN];  
+	Text * line = NULL;
+
+	/// EXECUTABLES STATEMETNS
+	buffer[width+1] = L'\0'; 
 	
+	//top line
+	buffer[0] = cornerch; 
+	for(index = 0; index < width; ++index)
+		buffer[index] = horch;
+	buffer[width] = cornerch; 
+	line = text_create(strdup(buffer), color, tail);	
+	
+	//middle lines
+	for(nLines = 0; nLines < height - 2; ++nLines)
+	{
+		buffer[0] = verch;
+		for(index = 0; index < width; ++index)
+			buffer[index] = L' ';
+		buffer[width] = verch; 
+		line = text_create(strdup(buffer), color, tail);	
+	}
+	
+	//bot line
+	buffer[0] = cornerch; 
+	for(index = 0; index < width; ++index)
+		buffer[index] = horch;
+	buffer[width] = cornerch; 
+	line = text_create(strdup(buffer), color, tail);	
+	
+	return(tail);
 }
 
 

@@ -295,6 +295,7 @@ void tree_test(void);
  *		int			y:			y origin
  *		int			width:		number of columns
  *		int			height:		number of rows
+ *		int			color:		color
  *		text *		tail:		tail of text queue
  *	returns:
  *		text *		newtail:	tail location after appending
@@ -306,6 +307,7 @@ Text * build_box(wchar_t horch,
 				 int y,
 				 int width,	
 				 int height,		
+				 char color,
 				 Text * tail);
  
 
