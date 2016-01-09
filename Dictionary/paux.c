@@ -771,9 +771,9 @@ Ebox * program_create_eboxes()
 
 	// EDIT BOX 1
 	memset(eboxes[count].text, '\0', EDIT_BOX_MAX);
-	eboxes[count].label		= strdup(EDIT_1_LABEL);
+	eboxes[count].label			= strdup(EDIT_1_LABEL);
 	eboxes[count].max			= EDIT_BOX_MAX;
-	eboxes[count].index		= 0;
+	eboxes[count].index			= 0;
 	eboxes[count].text_x_orig	= EDIT_1_X + 
 								  EDIT_1_WIDTH -
 								  EDIT_BOX_MAX - 
@@ -784,9 +784,9 @@ Ebox * program_create_eboxes()
 
 	// EDIT BOX 2
 	memset(eboxes[count].text, '\0', EDIT_BOX_MAX);
-	eboxes[count].label		= strdup(msg_2);
+	eboxes[count].label			= strdup(EDIT_2_LABEL);
 	eboxes[count].max			= EDIT_BOX_MAX;
-	eboxes[count].index		= 0;
+	eboxes[count].index			= 0;
 	eboxes[count].text_x_orig	= EDIT_2_X + 
 								  EDIT_2_WIDTH -
 								  EDIT_BOX_MAX - 
@@ -914,6 +914,7 @@ Program * program_create()
 	new->queue_head		= NULL;
 	new->queue_tail		= NULL;
 	new->ebox_array		= NULL;
+	new->phase			= EDIT;
 	return(new);
 }
 

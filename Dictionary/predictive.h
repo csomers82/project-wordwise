@@ -28,6 +28,7 @@
 #define UNINIT -1
 #define LOGTRUE 1U
 #define LOGFALSE 0U
+#define BLANK_CHAR	' '
 #define N_EDIT_BOXES	2
 #define EDIT_BOX_MAX	30
 #define EDIT_BOX_HEIGHT	4
@@ -39,13 +40,12 @@
 							EDIT_BOX_MAX + \
 							1 + 4 + 4					)
 #define EDIT_2_LABEL	("Restrict letters to:")
-#define	EDIT_2_X		60
+#define	EDIT_2_X		76
 #define	EDIT_2_Y		10
 #define EDIT_2_COLOR	'g'
 #define EDIT_2_WIDTH	(	strlen(EDIT_2_LABEL) + \
 							EDIT_BOX_MAX + \
 							1 + 4 + 4					)
-
 #define BOX_HORCH	L'_'
 #define BOX_VERCH	L'|'
 #define BOX_TLCH	L' '
@@ -56,8 +56,8 @@
 /* CONTROL CODES */
 #define CHECKCODE(x) ({\
 	move(20,20);\
-	printw("%s = %d", #x, x);\
 	wscrl(WIN, -1);\
+	printw("%s = %d", #x, x);\
 })
 #define CTRL_ADDCHAR	( 1)
 #define CTRL_CLEAR		(-2)
@@ -98,7 +98,7 @@
 #define EC17 4194304
 #define EC18 8388608
 
-
+enum Phase {EDIT, SELECT, HELP};
 
 extern unsigned int ERROR;
 extern unsigned int ERRQUIT;
@@ -289,6 +289,7 @@ typedef struct Program {
 	wchar_t		user_input;		// user input raw
 	int			screen_height;	// window cursor heigths
 	int			screen_width;	// window cursor widths
+	enum Phase	phase;			// program "mode of conduct"
 } Program;
 
 /*============================================================*/
@@ -305,6 +306,31 @@ void test1(void);
 void test2(void);
 void test3(void);
 void tree_test(void);
+
+
+
+
+/*************************************************************
+ *	Accepts a character and evaluates the correct program
+ *	course of action.
+ *	file:
+ *		pmain.c
+ *	args:
+ *		Program * p: contains the values associated with i/o
+ */
+void handle_char(Program * p);
+
+/************************************************************* 
+ *	positions the cursor at the position denoted by the 
+ *	active edit box.
+ *	file:
+ *		pmain.c
+ *	args:
+ *		Program * program: source of all cursor and ebox vars
+ */
+void cursor_reposition(Program * p);
+
+
 
 
 /************************************************************* 

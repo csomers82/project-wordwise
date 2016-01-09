@@ -319,6 +319,74 @@ void text_clear_all(Text * vic)
 	return;
 }
 
+/************************************************************* 
+ *	Positions the cursor at the position denoted by the 
+ *	active edit box. Only if the program is in edit mode will 
+ *	the program execute the repositioning (cursor)
+ *	file:
+ *		pmain.c
+ *	args:
+ *		Program * program: source of all cursor and ebox vars
+ */
+void cursor_reposition(Program * p)
+{
+	if(p->phase == EDIT)
+	{
+		int x, y, i; 
+		i = p->ebox_active;
+		x = p->ebox_array[i].text_x_orig + 
+			p->ebox_array[i].index;
+		y = p->ebox_array[i].text_y_orig;
+		wmove(WIN, y, x);
+		getyx(WIN, GLOBAL_Y, GLOBAL_X);
+	}
+}
+
+/*************************************************************
+ *	Accepts a character and evaluates the correct program
+ *	course of action.
+ *	file:
+ *		pmain.c
+ *	args:
+ *		Program * p: contains the values associated with i/o
+ */
+void handle_char(Program * p)
+{
+	if(p->phase == EDIT)
+	{
+		int i = p->ebox_active;
+		if(	(p->control_code == CTRL_ADDCHAR) &&
+			(p->ebox_array[i].index < p->ebox_array[i].max)	)
+		{
+			delch();
+			insch(p->user_input);
+			move(GLOBAL_Y, ++GLOBAL_X);
+			p->ebox_array[i].index += 1;
+		}
+		else if(	(p->control_code == CTRL_DELCHAR) &&
+					(p->ebox_array[i].index > 0)			)
+		{
+			p->ebox_array[i].index -= 1;
+			move(GLOBAL_Y, --GLOBAL_X);
+			delch();
+			insch(BLANK_CHAR);
+		}
+		else if( p->control_code == CTRL_CLEAR )
+		{
+			int clr, xo, yo; 
+			yo = p->ebox_array[i].text_y_orig,
+			xo = p->ebox_array[i].text_x_orig;
+			for(clr = p->ebox_array[i].index; clr + 1 >= 0; --clr)
+			{
+				delch();
+				insch(BLANK_CHAR);
+				move(yo, xo + clr);
+			}
+			p->ebox_array[i].index = 0;
+			getyx(WIN, GLOBAL_Y, GLOBAL_X);
+		}
+	}
+}
 
 /************************************************************* 
  *	Main: uses values on the program struct to execute the 
@@ -345,7 +413,7 @@ int main(int argc, char * argv[])
 		endwin();
 		goto clear_program;
 	}
-	ERROR = wsetscrreg(program->wnd, 16, ROWS_PER_SCREEN-1);
+	ERROR = wsetscrreg(program->wnd, 16, ROWS_PER_SCREEN-8);
 	scrollok(program->wnd, true);
 	if( ERROR == ERR )
 	{	
@@ -367,6 +435,11 @@ int main(int argc, char * argv[])
 									EDIT_BOX_HEIGHT, 
 									EDIT_2_COLOR, 
 									program->queue_tail);
+
+	program->queue_tail = text_create(EDIT_1_LABEL,	EDIT_1_COLOR, program->queue_tail);
+	text_position(program->queue_tail, (EDIT_1_Y + (EDIT_BOX_HEIGHT / 2)), (EDIT_1_X + 2));
+	program->queue_tail = text_create(EDIT_2_LABEL,	EDIT_2_COLOR, program->queue_tail);
+	text_position(program->queue_tail, (EDIT_2_Y + (EDIT_BOX_HEIGHT / 2)), (EDIT_2_X + 2));
 	WIN = program->wnd;
 	GLOBAL_X = 0;
 	GLOBAL_Y = 0;
@@ -379,23 +452,33 @@ int main(int argc, char * argv[])
 	while(program->loop_continue & !(ERROR))
 	{
 		text_manager(&program->queue_head);
+		cursor_reposition(program);
 		program->user_input = getch();
 		program->control_code = input_eval(program->user_input);
 		if(!ERROR && program->control_code) 
 		{	
 			cc = program->control_code;
-			if(		cc == CTRL_ADDCHAR	){ CHECKCODE(cc); }
-			else if(cc == CTRL_CLEAR	){ CHECKCODE(cc); }
+			if(	(cc == CTRL_ADDCHAR	) ||
+				(cc == CTRL_CLEAR	) ||
+				(cc == CTRL_DELCHAR	) )
+			{  
+				handle_char(program);
+			}
 			else if(cc == CTRL_CURSOR	){ CHECKCODE(cc); }
-			else if(cc == CTRL_DELCHAR	){ CHECKCODE(cc); }
 			else if(cc == CTRL_EXECUTE	){ CHECKCODE(cc); }
-			else if(cc == CTRL_EXIT		){ program->loop_continue = FALSE;	}
+			else if(cc == CTRL_EXIT		)
+			{ 
+				program->loop_continue = FALSE;	
+			}
 			else if(cc == CTRL_SCROLL	){ CHECKCODE(cc); }
 			else if(cc == CTRL_SELECT	){ CHECKCODE(cc); }
-			else if(cc == CTRL_SWITCH	){ CHECKCODE(cc); }
+			else if(cc == CTRL_SWITCH	)
+			{  
+				program->ebox_active += 1;	
+				program->ebox_active %= N_EDIT_BOXES;	
+			}
 			else if(cc == CTRL_UNDO		){ CHECKCODE(cc); }
 		}
-		//loop_continue = (user == 'c') ? TRUE : FALSE;
 	}
 	if( ERROR )
 	{	programErrorOut(ERROR);
@@ -404,9 +487,12 @@ int main(int argc, char * argv[])
 	////PROGRAM CLOSE
 	clear();
 	endwin();
+
 	clear_program:
 	text_clear_all(program->queue_head);
+	program_destroy_eboxes(program->ebox_array);
 	program_destroy(program);
+
 	if(isendwin()) 
 	{
 		SCREEN * new = NULL;// bogus
