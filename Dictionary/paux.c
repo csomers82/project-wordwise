@@ -728,11 +728,10 @@ void tree_test()
  *		paux.c
  *	args:
  *		Text ** head: ptr to headptr node
- *		Text ** tail: ptr to tailptr node
  *	returns:
- *		Text * titleQueue: contains the title lines
+ *		Text * newTail: contains the title lines
  */
-void build_title(Text ** head, Text ** tail) 
+Text * build_title(Text ** head) 
 {
 	//LOCAL VARIABLES
 	char *	title1		= "     _       ___   ___   ___       ____  _   __    _     ___   ____   ";
@@ -754,31 +753,84 @@ void build_title(Text ** head, Text ** tail)
 	text_position(qTail, titleStartY, titleX);
 	getyx(WIN, GLOBAL_Y, GLOBAL_X);
 	*head = qHead;
-	*tail = qTail;
-	return;
+	return(qTail);
 }
+
+/************************************************************* 
+ *	allocates the program's edit boxes 
+ *	file: 
+ *		paux.c
+ *	returns:
+ *		Ebox ebox_array[N_EDIT_BOXES]:	an array of edit boxes
+ */
+Ebox * program_create_eboxes()
+{
+	// LOCAL DECLARATIONS
+	Ebox *	eboxes	= malloc(sizeof(Ebox) * N_EDIT_BOXES);
+	int		count	= 0;		
+
+	// EDIT BOX 1
+	memset(eboxes[count].text, '\0', EDIT_BOX_MAX);
+	eboxes[count].label		= strdup(EDIT_1_LABEL);
+	eboxes[count].max			= EDIT_BOX_MAX;
+	eboxes[count].index		= 0;
+	eboxes[count].text_x_orig	= EDIT_1_X + 
+								  EDIT_1_WIDTH -
+								  EDIT_BOX_MAX - 
+								  3;
+	eboxes[count].text_y_orig	= EDIT_1_Y +
+								 (EDIT_BOX_HEIGHT / 2);
+	count += 1;
+
+	// EDIT BOX 2
+	memset(eboxes[count].text, '\0', EDIT_BOX_MAX);
+	eboxes[count].label		= strdup(msg_2);
+	eboxes[count].max			= EDIT_BOX_MAX;
+	eboxes[count].index		= 0;
+	eboxes[count].text_x_orig	= EDIT_2_X + 
+								  EDIT_2_WIDTH -
+								  EDIT_BOX_MAX - 
+								  3;
+	eboxes[count].text_y_orig	= EDIT_2_Y +
+								 (EDIT_BOX_HEIGHT / 2);
+	return(eboxes);
+}
+
+
+/************************************************************* 
+ *	deallocates the program's edit boxes 
+ *	file: 
+ *		paux.c
+ *	returns:
+ *		Ebox ebox_array[N_EDIT_BOXES]:	an array of edit boxes
+ */
+void program_destroy_eboxes(Ebox * vicArray)
+{
+	int vin;
+	for(vin = 0; vin < N_EDIT_BOXES; ++vin)
+	{
+		free(vicArray[vin].label);
+	}
+	free(vicArray);
+}
+
+
 
 /************************************************************* 
  *	allocates texts objects for a box.
  *	file:
  *		paux.c
  *	args:
- *		wchar_t		horch:		frame horizontal character
- *		wchar_t		verch:		frame vertical character
- *		wchar_t		cornerch:	frame corner character
- *		int			x:			x origin
- *		int			y:			y origin
- *		int			width:		number of columns
- *		int			height:		number of rows
- *		char		color:		color of text
- *		text *		tail:		tail of text queue
+ *		int		x:			x origin
+ *		int		y:			y origin
+ *		int		width:		number of columns
+ *		int		height:		number of rows
+ *		char	color:		color of text
+ *		text **	tail:		ptr to tail of text queue
  *	returns:
- *		text *		newtail:	tail location after appending
+ *		text *	newtail:	tail location after appending
  */
-Text * build_box(wchar_t horch,		
-			 	 wchar_t verch, 
-				 wchar_t cornerch,	
-				 int x,
+Text * build_box(int x,
 				 int y,
 				 int width,	
 				 int height,		
@@ -786,37 +838,56 @@ Text * build_box(wchar_t horch,
 				 Text * tail)
 {
 	/// LOCAL VARIABLES
-	int index, nLines;
-	wchar_t buffer[COLS_PER_SCREEN];  
+	char	horch = BOX_HORCH;// frame horizontal character
+	char	verch = BOX_VERCH;// frame vertical character
+	char	tlcornerch = BOX_TLCH;//frame corner character
+	char	blcornerch = BOX_BLCH;//frame corner character
+	char	trcornerch = BOX_TRCH;//frame corner character
+	char	brcornerch = BOX_BRCH;//frame corner character
+	int		index, nLines, bytes;
+	char	buffer[COLS_PER_SCREEN];  
+	char * string;  
 	Text * line = NULL;
 
 	/// EXECUTABLES STATEMETNS
-	buffer[width+1] = L'\0'; 
+	memset(buffer, '\0', COLS_PER_SCREEN);
+	bytes = sizeof(char) * (width + 1);
 	
 	//top line
-	buffer[0] = cornerch; 
-	for(index = 0; index < width; ++index)
+	buffer[0] = tlcornerch; 
+	for(index = 1; index < width - 1; ++index)
 		buffer[index] = horch;
-	buffer[width] = cornerch; 
-	line = text_create(strdup(buffer), color, tail);	
+	buffer[index] = trcornerch; 
+	string = malloc(bytes);
+	memcpy(string, buffer, width + 1);
+	line = text_create(string, color, tail);	
+	text_position(line, y + 0, x);
+	tail = line;
 	
 	//middle lines
-	for(nLines = 0; nLines < height - 2; ++nLines)
+	buffer[0] = verch;
+	for(index = 1; index < width - 1; ++index)
+		buffer[index] = ' ';
+	buffer[index] = verch; 
+	for(nLines = 1; nLines < height - 1; ++nLines)
 	{
-		buffer[0] = verch;
-		for(index = 0; index < width; ++index)
-			buffer[index] = L' ';
-		buffer[width] = verch; 
-		line = text_create(strdup(buffer), color, tail);	
+		string = malloc(bytes);
+		memcpy(string, buffer, width + 1);
+		line = text_create(string, color, tail);	
+		text_position(line, y + nLines, x);
+		tail = line;
 	}
-	
+
 	//bot line
-	buffer[0] = cornerch; 
-	for(index = 0; index < width; ++index)
+	buffer[0] = blcornerch; 
+	for(index = 1; index < width - 1; ++index)
 		buffer[index] = horch;
-	buffer[width] = cornerch; 
-	line = text_create(strdup(buffer), color, tail);	
-	
+	buffer[index] = brcornerch; 
+	string = malloc(bytes);
+	memcpy(string, buffer, width + 1);
+	line = text_create(string, color, tail);	
+	text_position(line, y + nLines, x);
+	tail = line;
 	return(tail);
 }
 

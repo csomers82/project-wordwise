@@ -33,22 +33,22 @@ int				GLOBAL_Y;
  *	returns:
  *		Text *	new		- ptr to new heap allocated Text obj
  */
-Text * text_create(char * string, char fore, Text * tail)
+Text * text_create(void * string, char fore, Text * tail)
 {
 	//CREATE NEW TEXT OBJECT
 	Text * new = malloc(sizeof(Text));
 	if(tail) tail->next = new;
 	
 	//INITIALIZE VALUES
-	new->string = string;
+	new->string		= string;
 	new->foreground = fore;
 	new->attributes = NULL;
-	new->posX = UNINIT;
-	new->posY = UNINIT;
-	new->bool_nl = TRUE;
-	new->hMargin = STANDARD_H_MARGIN;
-	new->vMargin = STANDARD_V_MARGIN;
-	new->next = NULL;
+	new->posX		= UNINIT;
+	new->posY		= UNINIT;
+	new->bool_nl	= TRUE;
+	new->hMargin	= STANDARD_H_MARGIN;
+	new->vMargin	= STANDARD_V_MARGIN;
+	new->next		= NULL;
 	new->persistant = FALSE;
 	return(new);
 }
@@ -147,14 +147,14 @@ void text_print(Text * t)
 	//[{ CHECK }]
 	if( !t ) {
 		FILE* fp = fopen("errep.txt", "a");
-		if(fp) fprintf(fp, "Error: printcolor NULL char *\n");
+		if(fp) fprintf(fp, "Error: printcolor NULL (Text *) arg \n");
 		fclose(fp);
 		return;
 	}
 
 	if(!(t->string) ) {
 		FILE* fp = fopen("errep.txt", "a");
-		if(fp) fprintf(fp, "Error: printcolor NULL char *\n");
+		if(fp) fprintf(fp, "Error: printcolor NULL (char *)\n");
 		fclose(fp);
 		return;
 	}
@@ -164,6 +164,7 @@ void text_print(Text * t)
 	int fore = COLOR_WHITE;
 	int charIndex;
 	int stringLen = strlen(t->string);
+	//(!t->bool_wide) ? strlen((char*) t->string) : wcslen((wchar_t*) t->string);
 	int rightMargin =  COLS_PER_SCREEN - t->hMargin;
 
 	//[{ FORMATING }]
@@ -215,6 +216,8 @@ void text_print(Text * t)
 	if(t->posX + stringLen < rightMargin)
 	{
 		printw("%s", t->string);	
+		//if(!(t->bool_wide))	printw("%s", (char *) t->string);	
+		//else				printw("%S", (wchar_t *) t->string);	
 		getyx(WIN, GLOBAL_Y, GLOBAL_X);
 	}
 	else 
@@ -230,7 +233,9 @@ void text_print(Text * t)
 			tempChar = copy[dist];
 			copy[dist] = '\0';	
 			// print data
-			printw("%s", copy);
+			printw("%s", t->string);	
+			//if(!(t->bool_wide))	printw("%s", (char *) t->string);	
+			//else				printw("%S", (wchar_t *) t->string);	
 			stringLen -= dist;
 			// reset data and cursor 
 			copy[dist] = tempChar;	
@@ -348,13 +353,27 @@ int main(int argc, char * argv[])
 	}
 
 	////PROGRAM INIT
-	build_title(&program->queue_head, &program->queue_tail);
+	program->queue_tail = build_title(&program->queue_head);
+	program->queue_tail = build_box(EDIT_1_X, 
+									EDIT_1_Y, 
+									EDIT_1_WIDTH, 
+									EDIT_BOX_HEIGHT, 
+									EDIT_1_COLOR, 
+									program->queue_tail);
+
+	program->queue_tail = build_box(EDIT_2_X, 
+									EDIT_2_Y, 
+									EDIT_2_WIDTH, 
+									EDIT_BOX_HEIGHT, 
+									EDIT_2_COLOR, 
+									program->queue_tail);
 	WIN = program->wnd;
 	GLOBAL_X = 0;
 	GLOBAL_Y = 0;
 	ERROR = 0u;
 	program->ptrX = &GLOBAL_X;
 	program->ptrY = &GLOBAL_Y;
+	program->ebox_array = program_create_eboxes();
 
 	////PROGRAM LOOP
 	while(program->loop_continue & !(ERROR))

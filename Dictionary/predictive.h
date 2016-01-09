@@ -1,3 +1,7 @@
+#ifndef PREDICTIVE_H
+#define PREDICTIVE_H
+
+
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
@@ -7,8 +11,7 @@
 #include <time.h>
 //#include <ncurses.h>
 
-#ifndef PREDICTIVE_H
-#define PREDICTIVE_H
+#include "tree26.h"
 
 /*============================================================*/
 /* CONSTANTS */
@@ -25,14 +28,36 @@
 #define UNINIT -1
 #define LOGTRUE 1U
 #define LOGFALSE 0U
-#define N_EDIT_BOXES 2
-#define EDIT_BOX_MAX 30
+#define N_EDIT_BOXES	2
+#define EDIT_BOX_MAX	30
+#define EDIT_BOX_HEIGHT	4
+#define EDIT_1_LABEL	("Begin typing word here:")
+#define	EDIT_1_X		10
+#define	EDIT_1_Y		10
+#define EDIT_1_COLOR	'b'
+#define EDIT_1_WIDTH	(	strlen(EDIT_1_LABEL) + \
+							EDIT_BOX_MAX + \
+							1 + 4 + 4					)
+#define EDIT_2_LABEL	("Restrict letters to:")
+#define	EDIT_2_X		60
+#define	EDIT_2_Y		10
+#define EDIT_2_COLOR	'g'
+#define EDIT_2_WIDTH	(	strlen(EDIT_2_LABEL) + \
+							EDIT_BOX_MAX + \
+							1 + 4 + 4					)
+
+#define BOX_HORCH	L'_'
+#define BOX_VERCH	L'|'
+#define BOX_TLCH	L' '
+#define BOX_TRCH	L' '
+#define BOX_BLCH	L'|'
+#define BOX_BRCH	L'|'
 
 /* CONTROL CODES */
 #define CHECKCODE(x) ({\
 	move(20,20);\
 	printw("%s = %d", #x, x);\
-	scroll(WIN);\
+	wscrl(WIN, -1);\
 })
 #define CTRL_ADDCHAR	( 1)
 #define CTRL_CLEAR		(-2)
@@ -282,17 +307,36 @@ void test3(void);
 void tree_test(void);
 
 
+/************************************************************* 
+ *	allocates the program's edit boxes 
+ *	file: 
+ *		paux.c
+ *	returns:
+ *		Ebox ebox_array[N_EDIT_BOXES]:	an array of edit boxes
+ */
+Ebox * program_create_eboxes(void);
+
+
+
+/************************************************************* 
+ *	deallocates the program's edit boxes 
+ *	file: 
+ *		paux.c
+ *	returns:
+ *		Ebox ebox_array[N_EDIT_BOXES]:	an array of edit boxes
+ */
+void program_destroy_eboxes(Ebox * vicArray);
+
+
+
 
 /************************************************************* 
  *	allocates texts objects for a box.
  *	file:
  *		paux.c
  *	args:
- *		wchar_t		horch:		frame horizontal character
- *		wchar_t		verch:		frame vertical character
- *		wchar_t		cornerch:	frame corner character
- *		int			x:			x origin
  *		int			y:			y origin
+ *		int			x:			x origin
  *		int			width:		number of columns
  *		int			height:		number of rows
  *		int			color:		color
@@ -300,10 +344,7 @@ void tree_test(void);
  *	returns:
  *		text *		newtail:	tail location after appending
  */
-Text * build_box(wchar_t horch,		
-			 	 wchar_t verch, 
-				 wchar_t cornerch,	
-				 int x,
+Text * build_box(int x,
 				 int y,
 				 int width,	
 				 int height,		
@@ -352,11 +393,10 @@ int programErrorOut(int ERRORCOPY);
  *		paux.c
  *	args:
  *		Text ** head: ptr to headptr node
- *		Text ** tail: ptr to tailptr node
  *	returns:
- *		Text * titleQueue: contains the title lines
+ *		Text * tail: ptr to tailptr node
  */
-void build_title(Text ** h, Text ** t);
+Text * build_title(Text ** h);
 
 /************************************************************* 
  *	Initializes the curses library functionality and creates	
@@ -388,13 +428,13 @@ int input_eval(wchar_t userKey);
  *	file:
  *		pmain.c	
  *	args:
- *		char *	string	- text that the object represents
+ *		void *	string	- text that the object represents
  *		char	fore	- foreground or standard if space character
  *		Text *	tail	- end of the text queue or NULL
  *	returns:
  *		Text *	new		- ptr to new heap allocated Text obj
  */
-Text * text_create(char * string, char fore, Text * tail);
+Text * text_create(void * string, char fore, Text * tail);
 
 
 /************************************************************* 
