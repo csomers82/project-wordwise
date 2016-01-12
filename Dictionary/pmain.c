@@ -355,22 +355,42 @@ void handle_char(Program * p)
 	if(p->phase == EDIT)
 	{
 		int i = p->ebox_active;
+		////inserting a character
 		if(	(p->control_code == CTRL_ADDCHAR) &&
 			(p->ebox_array[i].index < p->ebox_array[i].max)	)
 		{
+			//insert the user character
 			delch();
 			insch(p->user_input);
 			move(GLOBAL_Y, ++GLOBAL_X);
+
+			//handle the edit box and tree ptrs 
 			p->ebox_array[i].index += 1;
+			p->pos_index += 1;
+			p->pos_stack[p->pos_index] = p->node;
+			if(p->node) 
+			{	
+				//either valid next branch or NULL
+				p->node = (p->node->branch[p->user_input]);
+			}
+			
 		}
+		////backspacing a character
 		else if(	(p->control_code == CTRL_DELCHAR) &&
 					(p->ebox_array[i].index > 0)			)
 		{
+			//handle the edit box and tree ptrs
 			p->ebox_array[i].index -= 1;
+			p->pos_stack[p->pos_index] = NULL;
+			p->pos_index -= 1;
+			p->node = p->pos_stack[p->pos_index];
+
+			//remove the top character
 			move(GLOBAL_Y, --GLOBAL_X);
 			delch();
 			insch(BLANK_CHAR);
 		}
+		////clearing all of the characters
 		else if( p->control_code == CTRL_CLEAR )
 		{
 			int clr, xo, yo; 
@@ -421,6 +441,9 @@ int main(int argc, char * argv[])
 	}
 
 	////PROGRAM INIT
+	program->tree = tree26_create();
+	program->tree->str = strdup("");
+	program->tree = manage_buffered_file_tree(program->tree);
 	program->queue_tail = build_title(&program->queue_head);
 	program->queue_tail = build_box(EDIT_1_X, 
 									EDIT_1_Y, 
@@ -436,10 +459,11 @@ int main(int argc, char * argv[])
 									EDIT_2_COLOR, 
 									program->queue_tail);
 
-	program->queue_tail = text_create(EDIT_1_LABEL,	EDIT_1_COLOR, program->queue_tail);
+	program->queue_tail = text_create(strdup(EDIT_1_LABEL),	EDIT_1_COLOR, program->queue_tail);
 	text_position(program->queue_tail, (EDIT_1_Y + (EDIT_BOX_HEIGHT / 2)), (EDIT_1_X + 2));
-	program->queue_tail = text_create(EDIT_2_LABEL,	EDIT_2_COLOR, program->queue_tail);
+	program->queue_tail = text_create(strdup(EDIT_2_LABEL),	EDIT_2_COLOR, program->queue_tail);
 	text_position(program->queue_tail, (EDIT_2_Y + (EDIT_BOX_HEIGHT / 2)), (EDIT_2_X + 2));
+	
 	WIN = program->wnd;
 	GLOBAL_X = 0;
 	GLOBAL_Y = 0;
@@ -490,6 +514,7 @@ int main(int argc, char * argv[])
 
 	clear_program:
 	text_clear_all(program->queue_head);
+	tree26_destroy(program->tree);
 	program_destroy_eboxes(program->ebox_array);
 	program_destroy(program);
 

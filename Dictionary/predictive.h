@@ -280,6 +280,9 @@ typedef struct Program {
 	int *		ptrX;			// at global x
 	int *		ptrY;			// at global y
 	Tree26 *	tree;			// handle of tree26 root  node	
+	Tree26 *	node;			// ptr to current tree26 node
+	Tree26 **	pos_stack;		// ARRAY of node ptrs (ebox chars) 
+	int			pos_index;		// index of offset in pos_stack
 	Text *		queue_head;		// front of text output queue	
 	Text *		queue_tail;		// attachement end of text dequeue
 	Ebox *		ebox_array;		// ARRAY of edit boxes
@@ -308,6 +311,20 @@ void test3(void);
 void tree_test(void);
 
 
+
+/************************************************************* 
+ *	Using the blank root node, grows a tree26 struct using 
+ *	constant defined dictionary file. The return value should
+ *	be the unedited address of the root node that now points
+ *	to child nodes.
+ *	file:
+ *		paux.c
+ *	args:
+ *		Tree26 * root: blank string and unititialized node.
+ *	returns:
+ *		Tree26 * root: now has children in child ptr array
+ */
+Tree26 * manage_buffered_file_tree(Tree26 * root);
 
 
 /*************************************************************

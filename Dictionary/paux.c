@@ -157,7 +157,7 @@ char ** explode(const char * str, const char * delims, int * arrLen)
 //
 FILE * open_file(char * filename)
 {
-	printf("filename = %s\n", filename);
+	//printf("filename = %s\n", filename);
 	//LOCAL VARIABLES
 	FILE * fp;
 	
@@ -403,12 +403,12 @@ MsgQueue * buffered_file_input(FILE * fp)
 	} /* END OF LOOP LOGIC */	
 	if(assembly_index > 0)
 	{
-		printf("%8sOutputting extra words buffer\n", "");
+		//printf("%8sOutputting extra words buffer\n", "");
 		extra_word_buffer[assembly_index] = '\0';
 		q_back = append_write_create(q_back, strdup(extra_word_buffer));
 	}
 	free(extra_word_buffer);
-	printf("\e[34mLoaded %2d data sements!\e[0m\n", n_loads);
+	//printf("\e[34mLoaded %2d data sements!\e[0m\n", n_loads);
 
 	
 	return(q_front);
@@ -477,13 +477,13 @@ Tree26 * manage_buffered_file_tree(Tree26 * root)
 	char** frags;// the buffer split into its unique strings
 	int add_i;// number of str's managed from the current line 
 	int n_line_entries = 0;// number of unique str in the line read from the file
-	clock_t start;
-	clock_t finish;
-	clock_t zero;
-	double ellapsed;
+	//clock_t start;
+	//clock_t finish;
+	//clock_t zero;
+	//double ellapsed;
 
 	// accept the message data
-	start = clock();
+	//start = clock();
 	fp = open_file(DN_WORDBANK_FN);
 	if(!fp) 
 	{
@@ -492,17 +492,17 @@ Tree26 * manage_buffered_file_tree(Tree26 * root)
 	}
 	q_front = buffered_file_input(fp);
 	fclose(fp);
-	finish = clock();
-	ellapsed = (double) (finish - start) / CLOCKS_PER_SEC;
-	printf("\e[33mBuffered file loaded in [%lf] seconds\e[0m\n", ellapsed);
+	//finish = clock();
+	//ellapsed = (double) (finish - start) / CLOCKS_PER_SEC;
+	//printf("\e[33mBuffered file loaded in [%lf] seconds\e[0m\n", ellapsed);
 
 	
-	zero = clock();
+	//zero = clock();
 	int count = 0;
 	// consider and use the data, so long as it is queue'd to manage
 	while(q_front && !(count++ > 1000))
 	{
-		start = clock();
+		//start = clock();
 		// pop data, split data
 		q_front = unqueue_read_free(q_front, &buffer);	
 		frags = explode(buffer, delims, &n_line_entries);
@@ -524,12 +524,12 @@ Tree26 * manage_buffered_file_tree(Tree26 * root)
 		free(buffer);
 		//free(*frags);
 		free(frags);
-		finish = clock();
-		ellapsed = (double) (finish - start) / CLOCKS_PER_SEC;
-		printf("\e[33mData segment %2d loaded in [%lf] seconds\e[0m\n", count, ellapsed);
+		//finish = clock();
+		//ellapsed = (double) (finish - start) / CLOCKS_PER_SEC;
+		//printf("\e[33mData segment %2d loaded in [%lf] seconds\e[0m\n", count, ellapsed);
 	}
-	ellapsed = (double) (finish - zero) / CLOCKS_PER_SEC;
-	printf("\e[33mAll dictionary data loaded in [%lf] seconds\e[0m\n",  ellapsed);
+	//ellapsed = (double) (finish - zero) / CLOCKS_PER_SEC;
+	//printf("\e[33mAll dictionary data loaded in [%lf] seconds\e[0m\n",  ellapsed);
 
 	return(root);
 }
@@ -903,6 +903,13 @@ Text * build_box(int x,
 Program * program_create()
 {
 	Program *	new		= malloc(sizeof(Program));
+	new->pos_stack		= malloc(sizeof(Tree26 *) * EDIT_BOX_MAX);
+	int count;
+	for(count = 0; count < EDIT_BOX_MAX; ++count)
+	{
+		new->pos_stack[count] = NULL;
+	}
+	new->pos_index		= UNINIT;
 	new->loop_continue	= TRUE;				// true/false continue program
 	new->screen_height	= ROWS_PER_SCREEN;	// window cursor heigths
 	new->screen_width	= COLS_PER_SCREEN;	// window cursor widths
@@ -910,6 +917,7 @@ Program * program_create()
 	new->user_input		= L'\0';
 	new->ebox_active	= 0;
 	new->tree			= NULL;
+	new->node			= NULL;
 	new->wnd			= NULL;				// curses opaque window object
 	new->queue_head		= NULL;
 	new->queue_tail		= NULL;
@@ -928,13 +936,16 @@ Program * program_create()
  */
 void program_destroy(Program * vic)
 {
-	vic->wnd = NULL;
-	vic->ptrX = NULL;
-	vic->ptrY = NULL;
+	free(vic->pos_stack);
+	vic->node		= NULL;
+	vic->wnd		= NULL;
+	vic->ptrX		= NULL;
+	vic->ptrY		= NULL;
 	vic->queue_head = NULL;
 	vic->queue_tail = NULL;
+
 	free(vic);
-	vic = NULL;
+	vic				= NULL;
 	return;
 }
 
@@ -963,7 +974,7 @@ int input_eval(wchar_t userKey)
 	#define CTRL_UNDO		(-4)
  */
 	// printing a character
-	if(iswalpha(userKey))	
+	if(iswalpha(userKey) || userKey == L'\'')	
 	{	
 		return CTRL_ADDCHAR;
 	}
