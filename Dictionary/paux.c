@@ -915,7 +915,7 @@ Program * program_create()
 	new->screen_width	= COLS_PER_SCREEN;	// window cursor widths
 	new->control_code	= CTRL_DONOTHING;
 	new->user_input		= L'\0';
-	new->ebox_active	= 0;
+	new->ebox_active	= WORKSPACE;
 	new->tree			= NULL;
 	new->node			= NULL;
 	new->wnd			= NULL;				// curses opaque window object
@@ -946,6 +946,44 @@ void program_destroy(Program * vic)
 
 	free(vic);
 	vic				= NULL;
+	return;
+}
+
+/************************************************************* 
+ *	clears all of the characters in the WORKSPACE, Ebox 
+ *	struct, and in the Tree26 position stack.
+ *	file:
+ *		paux.c
+ *	args:
+ *		Program * p: holds stack, ebox, and positions
+ *		enum EboxNames which: contains index of space to clear
+ *	returns:
+ *		void
+ */
+void ebox_clear(Program * p, enum EboxNames which)
+{
+	int clr, xo, yo, i; 
+	i = (int) which;
+	yo = p->ebox_array[i].text_y_orig,
+	xo = p->ebox_array[i].text_x_orig;
+	for(clr = p->ebox_array[i].index; clr + 1 >= 0; --clr)
+	{
+		delch();
+		insch(BLANK_CHAR);
+		move(yo, xo + clr);
+	}
+	if(which == WORKSPACE)
+	{
+		for(clr = p->pos_index; clr > 0; --clr)
+		{
+			p->pos_stack[clr + 1] = NULL;
+		}
+		p->node = p->pos_stack[0];
+		p->pos_index = 0;
+		CHECKSTACK(p->pos_stack, p->pos_index);
+		p->ebox_array[i].index = 0;
+		getyx(WIN, GLOBAL_Y, GLOBAL_X);
+	}
 	return;
 }
 

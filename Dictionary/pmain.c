@@ -377,6 +377,13 @@ void handle_char(Program * p)
 				p->pos_stack[p->pos_index] = p->node;
 				CHECKSTACK(p->pos_stack, p->pos_index);
 			}
+			else if(p->ebox_active == PARAMETERS)
+			{
+				if(	(p->pos_index != 0 ) )
+				{
+					ebox_clear(p, WORKSPACE);
+				}
+			}
 		}
 		////backspacing a character
 		else if(	(p->control_code == CTRL_DELCHAR) &&
@@ -388,11 +395,8 @@ void handle_char(Program * p)
 			{
 				p->pos_stack[p->pos_index] = NULL;
 				p->pos_index -= 1;
-				if(1)//p->pos_index)
-				{
-					p->node = p->pos_stack[p->pos_index];
-					CHECKSTACK(p->pos_stack, p->pos_index);
-				}
+				p->node = p->pos_stack[p->pos_index];
+				CHECKSTACK(p->pos_stack, p->pos_index);
 			}
 
 			//remove the top character
@@ -403,17 +407,7 @@ void handle_char(Program * p)
 		////clearing all of the characters
 		else if( p->control_code == CTRL_CLEAR )
 		{
-			int clr, xo, yo; 
-			yo = p->ebox_array[i].text_y_orig,
-			xo = p->ebox_array[i].text_x_orig;
-			for(clr = p->ebox_array[i].index; clr + 1 >= 0; --clr)
-			{
-				delch();
-				insch(BLANK_CHAR);
-				move(yo, xo + clr);
-			}
-			p->ebox_array[i].index = 0;
-			getyx(WIN, GLOBAL_Y, GLOBAL_X);
+			ebox_clear(p, p->ebox_active);	
 		}
 	}
 }

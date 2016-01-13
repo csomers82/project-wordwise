@@ -67,19 +67,25 @@
 #define CTRL_UNDO		(-4)
 
 /* DIAGNOSTICS */
-#define CHECKCODE(x) ({\
-	move(20,20);\
-	wscrl(WIN, -1);\
-	printw("%s = %d", #x, x);\
-})
-#define CHECKSTACK(stack, i) ({\
-	move(20,20);\
-	wscrl(WIN, -1);\
-	if(stack[i])\
-	printw("%s[%2d] = %p:(%s)", #stack, i, stack[i], stack[i]->str );\
-	else\
-	printw("%s[%2d] = %p", #stack, i, stack[i]);\
-})
+#define CHECKS
+#ifdef CHECKS
+	#define CHECKCODE(x) ({\
+		move(20,20);\
+		wscrl(WIN, -1);\
+		printw("%s = %d", #x, x);\
+	})
+	#define CHECKSTACK(stack, i) ({\
+		move(20,20);\
+		wscrl(WIN, -1);\
+		if(stack[i])\
+		printw("%s[%2d] = %p:(%s)", #stack, i, stack[i], stack[i]->str );\
+		else\
+		printw("%s[%2d] = %p", #stack, i, stack[i]);\
+	})
+#else
+	#define CHECKCODE(x) 
+	#define CHECKSTACK(stack, i) 
+#endif
 
 /* ERROR HANDLING */
 #define ERRORLOG "errors.log"
@@ -321,8 +327,6 @@ void test2(void);
 void test3(void);
 void tree_test(void);
 
-
-
 /************************************************************* 
  *	Using the blank root node, grows a tree26 struct using 
  *	constant defined dictionary file. The return value should
@@ -358,6 +362,20 @@ void handle_char(Program * p);
  */
 void cursor_reposition(Program * p);
 
+
+
+/************************************************************* 
+ *	clears all of the characters in the WORKSPACE, Ebox 
+ *	struct, and in the Tree26 position stack.
+ *	file:
+ *		paux.c
+ *	args:
+ *		Program * p: holds stack, ebox, and positions
+ *		enum EboxNames which: contains index of space to clear
+ *	returns:
+ *		void
+ */
+void ebox_clear(Program * p, enum EboxNames which);
 
 
 
