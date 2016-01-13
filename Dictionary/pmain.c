@@ -431,8 +431,11 @@ TreeQueue * tree26_bfs(Program * p)
 	TreeQueue * result_q_head	= NULL;
 	TreeQueue * result_q_tail	= NULL;
 	TreeQueue *	tempQ			= NULL;
-	Tree26 *	curr			= p->node;
-	int			depth			= 0;			
+	TreeQueue * stop_address	= NULL;
+	TreeQueue * next			= NULL;
+	TreeQueue *	currQueue		= NULL;
+	Tree26 *	currNode		= NULL;
+	//int			depth			= 0;			
 	int			index			= 0;
 
 	///EXECUTABLE STATEMENTS
@@ -442,29 +445,86 @@ TreeQueue * tree26_bfs(Program * p)
 		ERROR |= EC0C;
 		return NULL;
 	}
-	// conduct a bfs
-	for(index = 0; index < N_BRANCHES; ++index)
-	{
-		if(curr->branch[index])
+	// initialize 
+	treeQueue_create(tempQ, p->node);
+	search_q_tail = tempQ;
+	search_q_head = tempQ;
+
+	//// Conduct breadth first search!
+	do {	
+		// reset loop vars
+		stop_address	= NULL;
+		currQueue		= search_q_head;
+		
+		SHOWs("Queue Cycle");
+		// queue new search nodes
+		while(currQueue)
 		{
-			treeQueue_create(tempQ, curr->branch[index]);
-			search_q_head = tempQ;	
-			search_q_tail = search_q_head;	
-			break;
-		}
-	}
-	while(search_q_head)
-	{
-		// queue search nodes
-		for(index = 0; index < N_BRANCHES; ++index)
-		{
-			if(curr->branch[index])
+			next = currQueue->next;
+			currNode = currQueue->node;
+			SHOWs(currNode->str);
+			if(!search_q_head)
 			{
+				for(index = 0; index < N_BRANCHES; ++index)
+				{
+					if(currNode->branch[index])
+					{
+						treeQueue_create(tempQ, currNode->branch[index]);
+						search_q_tail->next = tempQ;
+						search_q_tail = tempQ;
+						if(!search_q_head)
+							search_q_head = search_q_tail;	
+					}
+				}
 			}
+			else
+			{	for(index = 0; index < N_BRANCHES; ++index)
+				{
+					if(currNode->branch[index])
+					{
+						treeQueue_create(tempQ, currNode->branch[index]);
+						search_q_tail->next = tempQ;
+						search_q_tail = tempQ;
+					}
+				}
+			}
+			currQueue = next;
 		}
-		// evaluate 
-	}
-	
+
+		SHOWs("Evaluate Cycle");
+		// evaluate whether a word has been found or to continue 
+		while(search_q_head && (search_q_head != stop_address))
+		{	
+			currNode = search_q_head->node;
+			next = search_q_head->next;
+			
+			SHOWs(currNode->str);
+			//==========================================
+			// case 1: node is a word 
+			//		:: pop search : push result 
+			if(	currNode->bool_complete_low ||
+				currNode->bool_complete_cap )
+			{
+				treeQueue_create(tempQ, currNode);
+				result_q_tail->next = tempQ;
+				result_q_tail = tempQ;
+				if(!result_q_head)
+					result_q_head = result_q_tail;
+			}
+			// case 2: node is incomplete 
+			//		:: pop search : push search
+			else {
+				search_q_head->next = NULL;
+				search_q_tail->next = search_q_head;	
+				if(!stop_address)
+					stop_address = search_q_head;
+			}
+			free(search_q_head);
+			search_q_head = next;
+		}
+
+	} while(search_q_head);
+
 	return(result_q_head);
 }
 
@@ -483,8 +543,8 @@ TreeQueue * tree26_bfs(Program * p)
 int main(int argc, char * argv[])
 {
 	////TEST THE PROGRAM FUNCTIONS
-	//test_main();
-	//return 0;
+	test_main();
+	return 0;
 
 	////PROGRAM VARIABLES
 	Program *	program		= program_create();
@@ -503,11 +563,11 @@ int main(int argc, char * argv[])
 	if( ERROR == ERR )
 	{	
 		printw("Error with scroll reg.\n");
+		ERROR = EC0D;
 	}
 
 	////PROGRAM INIT
 	program->tree = tree26_create();
-	program->tree->str = strdup("");
 	program->tree = manage_buffered_file_tree(program->tree);
 	if(!program->tree)
 		ERROR |= EC0B;

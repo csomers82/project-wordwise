@@ -14,7 +14,7 @@
 /*@* STRUCTURES *@*/
 /*** 
  *	A Structure that implements high performance predictive text software
- */
+ */ 
 typedef struct Tree26 {
 	char * str;// section of string present
 	struct Tree26 ** branch;// a child branch for each next availible letter

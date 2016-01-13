@@ -581,15 +581,61 @@ void test_main()
 
 	
 	// Tree struct creation, insertion, deletion
-	tree_test();
+	//tree_test();
 
 	// Tree26 special character handling function
 	//test3();
 	//char wide[2] = {'\303','\242'};
 	//printf("sizeof(%C) = %ld\n", (*wide), sizeof(wchar_t));
 	//printf("\n\n\n");
+	test4();
 }
 
+void test4()
+{
+	//DATA CONTEXT
+	TreeQueue * candidates	= NULL;
+	TreeQueue * next		= NULL;
+	Program *	program		= program_create(); 
+	char *		peg			= "=========";
+	int			index		= 0;
+	clock_t		start		= 0;
+	clock_t		finish		= 0;
+	double		ellapsed	= 0;
+
+	program->tree		= tree26_create();
+	program->tree->str	= strdup("");
+	program->node		= program->tree; 
+	
+	//TEST PROCESS
+	printf("%s\nTest 4\n%s\n", peg,peg);
+	candidates = tree26_bfs(program);
+	if(candidates)
+	{
+		start = clock();
+		while(candidates)
+		{
+			next = candidates->next;	
+			printf("return[%2d] = %s\n", ++index, candidates->node->str);
+			candidates = next;
+		}
+		finish = clock();
+		ellapsed = (double) (finish - start) / CLOCKS_PER_SEC;
+		printf("\e[33mBreadth First Search in [%lf] seconds\e[0m\n", ellapsed);
+	}
+	else if(!ERROR)
+	{
+		fprintf(stderr, "No output.\n");
+	}
+	else
+	{
+		fprintf(stderr, "NULL ARGUMENTS!!!\n");
+	}
+	//CLEAN UP
+	tree26_destroy(program->tree);
+	program_destroy(program);
+	return;
+}
 
 void test3()
 {
@@ -1097,6 +1143,7 @@ int programErrorOut(int ERRORCOPY)
 	char * title = "WORD PREDICTION ERROR LOG";
 	char * sect1 = "PRINT FUNCTION ERRORS";
 	char * sect2 = "MACRO USE ERRORS";
+	char * sect3 = "MISCELLANEOUS ERRORS";
 	time_t log_time;
 	int i;
 	char * b = " ";
@@ -1157,10 +1204,20 @@ int programErrorOut(int ERRORCOPY)
 		{	LOG(log, "EC09: text_toggle: invalid [bool ] toggle value\n");
 		}
 	}
-	if(ERRORCOPY  & (EC0A)) 
+	if(ERRORCOPY  & (EC0A | EC0B | EC0C | EC0D)) 
 	{
+		fprintf(log, "%s%s\n", b, sect3);
 		if(ERRORCOPY & EC0A)
 		{	LOG(log, "EC0A: buffered_file_input: small mess\n");
+		}
+		if(ERRORCOPY & EC0B)
+		{	LOG(log, "EC0B: main: program->tree evaluating to NULL pointer\n");
+		}
+		if(ERRORCOPY & EC0C)
+		{	LOG(log, "EC0C: tree26_bfs: NULL [Tree26 *] argument\n");
+		}
+		if(ERRORCOPY & EC0D)
+		{	LOG(log, "EC0D: main: scrollok program error\n");
 		}
 	}
 	fclose(log);

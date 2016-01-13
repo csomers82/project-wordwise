@@ -195,6 +195,7 @@ extern int GLOBAL_Y;
 			fprintf(log		, errmsg);\
 		})
 
+#define DEBUG
 #define SHOWFILE
 #define COLOUR
 #ifdef DEBUG
@@ -229,20 +230,24 @@ extern int GLOBAL_Y;
 		#define SHOWl(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %Ld\e[0m", BB, #x, x);
 		#define SHOWc(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %c\e[0m", CC, #x, x);
 		#define SHOWp(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %p\e[0m", DD, #x, x);
-		#define SHOWs(x) ({\
-			WHERE\
-			int length = strlen(x);\
-			char * checkthis = malloc((length + 3) * sizeof(char));\
-			memset(checkthis, '\0', (length + 3) * sizeof(char));\
-			sprintf(checkthis, "\"%s\"", x);\
-			if(strcmp(#x, checkthis)) {\
-				fprintf(stderr,"\e[%dm[%4s] = %s\e[0m", EE, #x, x);\
-			}\
-			else {\
-				fprintf(stderr,"\e[%dm[%4s] = %s\e[0m", EE, "debug", x);\
-			}\
-			free(checkthis);\
-		})
+		#ifndef FANCY
+			#define SHOWs(x) WHERE fprintf(stderr,"\e[%dm[%4s] = %s\e[0m", EE, #x, x);
+		#else
+			#define SHOWs(x) ({\
+				WHERE\
+				int length = strlen(x);\
+				char * checkthis = malloc((length + 3) * sizeof(char));\
+				memset(checkthis, '\0', (length + 3) * sizeof(char));\
+				sprintf(checkthis, "\"%s\"", x);\
+				if(strcmp(#x, checkthis)) {\
+					fprintf(stderr,"\e[%dm[%4s] = %s\e[0m", EE, #x, x);\
+				}\
+				else {\
+					fprintf(stderr,"\e[%dm[%4s] = %s\e[0m", EE, "debug", x);\
+				}\
+				free(checkthis);\
+			})
+		#endif
 	#endif
 #else
 	#define MISUSE
@@ -353,6 +358,7 @@ void test1(void);
 void test2(void);
 void test3(void);
 void tree_test(void);
+void test4(void);
 
 
 
