@@ -54,11 +54,6 @@
 #define BOX_BRCH	L'|'
 
 /* CONTROL CODES */
-#define CHECKCODE(x) ({\
-	move(20,20);\
-	wscrl(WIN, -1);\
-	printw("%s = %d", #x, x);\
-})
 #define CTRL_ADDCHAR	( 1)
 #define CTRL_CLEAR		(-2)
 #define CTRL_CURSOR		( 2)
@@ -70,6 +65,21 @@
 #define CTRL_SELECT		( 5)
 #define CTRL_SWITCH		( 6)
 #define CTRL_UNDO		(-4)
+
+/* DIAGNOSTICS */
+#define CHECKCODE(x) ({\
+	move(20,20);\
+	wscrl(WIN, -1);\
+	printw("%s = %d", #x, x);\
+})
+#define CHECKSTACK(stack, i) ({\
+	move(20,20);\
+	wscrl(WIN, -1);\
+	if(stack[i])\
+	printw("%s[%2d] = %p:(%s)", #stack, i, stack[i], stack[i]->str );\
+	else\
+	printw("%s[%2d] = %p", #stack, i, stack[i]);\
+})
 
 /* ERROR HANDLING */
 #define ERRORLOG "errors.log"
@@ -98,6 +108,7 @@
 #define EC17 4194304
 #define EC18 8388608
 
+enum EboxNames {WORKSPACE, PARAMETERS};
 enum Phase {EDIT, SELECT, HELP};
 
 extern unsigned int ERROR;

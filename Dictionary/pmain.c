@@ -366,14 +366,17 @@ void handle_char(Program * p)
 
 			//handle the edit box and tree ptrs 
 			p->ebox_array[i].index += 1;
-			p->pos_index += 1;
-			p->pos_stack[p->pos_index] = p->node;
-			if(p->node) 
-			{	
-				//either valid next branch or NULL
-				p->node = (p->node->branch[p->user_input]);
+			if(p->ebox_active == WORKSPACE)
+			{
+				p->pos_index += 1;
+				if(p->node) 
+				{	
+					//either valid next branch or NULL
+					p->node = BRANCH(p->node, p->user_input);
+				}
+				p->pos_stack[p->pos_index] = p->node;
+				CHECKSTACK(p->pos_stack, p->pos_index);
 			}
-			
 		}
 		////backspacing a character
 		else if(	(p->control_code == CTRL_DELCHAR) &&
@@ -381,9 +384,16 @@ void handle_char(Program * p)
 		{
 			//handle the edit box and tree ptrs
 			p->ebox_array[i].index -= 1;
-			p->pos_stack[p->pos_index] = NULL;
-			p->pos_index -= 1;
-			p->node = p->pos_stack[p->pos_index];
+			if(p->ebox_active == WORKSPACE)
+			{
+				p->pos_stack[p->pos_index] = NULL;
+				p->pos_index -= 1;
+				if(1)//p->pos_index)
+				{
+					p->node = p->pos_stack[p->pos_index];
+					CHECKSTACK(p->pos_stack, p->pos_index);
+				}
+			}
 
 			//remove the top character
 			move(GLOBAL_Y, --GLOBAL_X);
@@ -444,6 +454,11 @@ int main(int argc, char * argv[])
 	program->tree = tree26_create();
 	program->tree->str = strdup("");
 	program->tree = manage_buffered_file_tree(program->tree);
+	if(!program->tree)
+		ERROR |= EC0B;
+	program->node = program->tree; 
+	program->pos_stack[0] = program->node; 
+	program->pos_index += 1;
 	program->queue_tail = build_title(&program->queue_head);
 	program->queue_tail = build_box(EDIT_1_X, 
 									EDIT_1_Y, 
