@@ -126,6 +126,13 @@ extern int GLOBAL_Y;
 
 /*============================================================*/
 /* MACROS	 */
+#define treeQueue_create(tq_ptr, t26_ptr) ({\
+			TreeQueue * _NEWNODE	= malloc(sizeof(TreeQueue));\
+			_NEWNODE->node			= t26_ptr;\
+			_NEWNODE->next			= NULL;\
+			tq_ptr = _NEWNODE;\
+		})
+
 #define text_position(textPtr, Y, X) ({\
 			if( sizeof(X) == sizeof(int) )\
 			{\
@@ -257,6 +264,26 @@ extern int GLOBAL_Y;
 typedef struct _win_st WINDOW;
 
 /****
+ *	MsgQueue Struct: is a basic LINKEDLIST (SLL) with a char*.
+ *	It is used in the extraction of text from the dictionary
+ *	input file.
+ */
+typedef struct MsgQueue {
+	char *				line;
+	struct MsgQueue *	next;
+} MsgQueue;
+
+
+/****
+ *	TreeQueue Struct: is a basic LINKEDLIST (SLL) with a Tree26*.
+ *	It is used in the program's breadth first search BFS
+ */
+typedef struct TreeQueue {
+	Tree26 *			node;
+	struct TreeQueue *	next;
+} TreeQueue;
+
+/****
  *	Text Struct: frames the position, color, and attributes of 
  *	curses text written to the screen 
  */
@@ -326,6 +353,24 @@ void test1(void);
 void test2(void);
 void test3(void);
 void tree_test(void);
+
+
+
+
+/************************************************************* 
+ *	Creates a SLL of TreeQueue nodes that represents the first
+ *	layer of words that can be found with a breadth first 
+ *	search. 
+ *	file:
+ *		pmain.c
+ *	args:
+ *		Program * p: contains tree pointer (Program->node)
+ *	returns:
+ *		TreeQueue * tq: singally linked list of  results
+ */
+TreeQueue * tree26_bfs(Program * p);
+
+
 
 /************************************************************* 
  *	Using the blank root node, grows a tree26 struct using 

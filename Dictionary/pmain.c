@@ -413,12 +413,72 @@ void handle_char(Program * p)
 }
 
 /************************************************************* 
+ *	Creates a SLL of TreeQueue nodes that represents the first
+ *	layer of words that can be found with a breadth first 
+ *	search. 
+ *	file:
+ *		pmain.c
+ *	args:
+ *		Program * p: contains tree pointer (Program->node)
+ *	returns:
+ *		TreeQueue * tq: singally linked list of  results
+ */
+TreeQueue * tree26_bfs(Program * p)
+{
+	///LOCAL DECLARATIONS
+	TreeQueue *	search_q_head	= NULL;
+	TreeQueue *	search_q_tail	= NULL;
+	TreeQueue * result_q_head	= NULL;
+	TreeQueue * result_q_tail	= NULL;
+	TreeQueue *	tempQ			= NULL;
+	Tree26 *	curr			= p->node;
+	int			depth			= 0;			
+	int			index			= 0;
+
+	///EXECUTABLE STATEMENTS
+	// asserted that current tree node is valid
+	if(!p->node)
+	{	
+		ERROR |= EC0C;
+		return NULL;
+	}
+	// conduct a bfs
+	for(index = 0; index < N_BRANCHES; ++index)
+	{
+		if(curr->branch[index])
+		{
+			treeQueue_create(tempQ, curr->branch[index]);
+			search_q_head = tempQ;	
+			search_q_tail = search_q_head;	
+			break;
+		}
+	}
+	while(search_q_head)
+	{
+		// queue search nodes
+		for(index = 0; index < N_BRANCHES; ++index)
+		{
+			if(curr->branch[index])
+			{
+			}
+		}
+		// evaluate 
+	}
+	
+	return(result_q_head);
+}
+
+
+/************************************************************* 
  *	Main: uses values on the program struct to execute the 
- *	program's functions. The main program loop executes the 
+ *	program's functions. The program's loop executes the 
  *	following instrunctions:
  *		1) Print all queued text
  *		2) Accept input from user
- *		3) Handle input and execute reaction
+ *		3) Adjust Tree26 ptr stack
+ *		4) BFS from Tree26 ptr
+ *		5) Queue all complete word results
+ *		E) Evaluate continue
  */
 int main(int argc, char * argv[])
 {
@@ -427,8 +487,9 @@ int main(int argc, char * argv[])
 	//return 0;
 
 	////PROGRAM VARIABLES
-	Program *	program	= program_create();
-	int			cc		= CTRL_DONOTHING;	
+	Program *	program		= program_create();
+	TreeQueue *	candidates	= NULL;
+	int			cc			= CTRL_DONOTHING;	
 
 	////EXECUTE CURSES SPECIFIC INITIALIZATIONS 
 	program->wnd = window_0(&program->screen_width, &program->screen_height);
@@ -512,6 +573,7 @@ int main(int argc, char * argv[])
 			}
 			else if(cc == CTRL_UNDO		){ CHECKCODE(cc); }
 		}
+		candidates = tree26_bfs(program);
 	}
 	if( ERROR )
 	{	programErrorOut(ERROR);

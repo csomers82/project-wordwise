@@ -20,10 +20,6 @@
 #define FALSE 0
 
 
-typedef struct MsgQueue {
-	char *	line;
-	struct MsgQueue * next;
-} MsgQueue;
 
 
 /* ********************************************************** *
