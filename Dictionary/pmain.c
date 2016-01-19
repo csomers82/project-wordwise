@@ -452,6 +452,7 @@ TreeQueue * tree26_bfs(Program * p)
 
 	//// Conduct breadth first search!
 	do {	
+		STAFF;
 		// reset loop vars
 		stop_address	= NULL;
 		currQueue		= search_q_head;
@@ -482,6 +483,8 @@ TreeQueue * tree26_bfs(Program * p)
 				{
 					if(currNode->branch[index])
 					{
+						SHOWp(currNode->branch[index]);
+						SHOWc(97 + index);
 						treeQueue_create(tempQ, currNode->branch[index]);
 						search_q_tail->next = tempQ;
 						search_q_tail = tempQ;
@@ -491,38 +494,59 @@ TreeQueue * tree26_bfs(Program * p)
 			currQueue = next;
 		}
 
+		stop_address	= NULL;
+		currQueue		= search_q_head;
+		SSEP;
 		SHOWs("Evaluate Cycle");
+			SHOWp(search_q_head);
+			SHOWp(search_q_tail);
 		// evaluate whether a word has been found or to continue 
 		while(search_q_head && (search_q_head != stop_address))
 		{	
 			currNode = search_q_head->node;
 			next = search_q_head->next;
 			
+			SHOWp(search_q_head);
+			SHOWp(search_q_head->node);
 			SHOWs(currNode->str);
+			SHOWp(search_q_head->next);
 			//==========================================
 			// case 1: node is a word 
 			//		:: pop search : push result 
 			if(	currNode->bool_complete_low ||
 				currNode->bool_complete_cap )
 			{
+				SHOWs("push result");
 				treeQueue_create(tempQ, currNode);
-				result_q_tail->next = tempQ;
+				if(result_q_tail)
+					result_q_tail->next = tempQ;
 				result_q_tail = tempQ;
 				if(!result_q_head)
 					result_q_head = result_q_tail;
+				
+				SHOWs("free head");
+				free(search_q_head);
+				SHOWp(search_q_head);
 			}
 			// case 2: node is incomplete 
 			//		:: pop search : push search
 			else {
+				SHOWs("push search");
 				search_q_head->next = NULL;
 				search_q_tail->next = search_q_head;	
 				if(!stop_address)
+				{
 					stop_address = search_q_head;
+					SHOWp(stop_address);
+					SHOWi(1);
+				}
 			}
-			free(search_q_head);
 			search_q_head = next;
+			SPACE;
 		}
 
+		SPACE;
+		SPACE;
 	} while(search_q_head);
 
 	return(result_q_head);

@@ -603,13 +603,35 @@ void test4()
 	clock_t		finish		= 0;
 	double		ellapsed	= 0;
 
-	program->tree		= tree26_create();
-	program->tree->str	= strdup("");
-	program->node		= program->tree; 
-	
+	program->tree	= tree26_create();
+	program->tree	= manage_buffered_file_tree(program->tree);
+	program->node	= program->tree; 
+	SHOWp(program->node);
 	//TEST PROCESS
-	printf("%s\nTest 4\n%s\n", peg,peg);
+	for(index = 0; index < 2; ++index)
+	{
+		printf("\ninput char: ");
+		program->user_input = (wchar_t) getc(stdin);
+		printf("char was = .%C.\n",	program->user_input);
+		(void) getc(stdin);
+
+		if(program->ebox_active == WORKSPACE)
+		{
+			program->pos_index += 1;
+			if(program->node) 
+			{	
+				//either valid next branch or NULL
+				program->node = BRANCH(program->node, program->user_input);
+			}
+			program->pos_stack[program->pos_index] = program->node;
+			//CHECKSTACK(program->pos_stack, program->pos_index);
+		}
+		SHOWp(program->node);
+	}
+	printf("\n%s\nTest 4\n%s\n", peg,peg);
+	index = 0;
 	candidates = tree26_bfs(program);
+	printf("\n%s\nResults\n%s\n", peg,peg);
 	if(candidates)
 	{
 		start = clock();

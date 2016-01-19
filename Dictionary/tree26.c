@@ -321,12 +321,12 @@ void tree26_destroy(Tree26 * vic)
 	depth = 0;
 	br_i = 0;
 	stack[depth] = curr;
-		STAFF;
-		SHOWp(stack[depth]);
-		SHOWp(curr);
-		SHOWs(curr->str);
-		SHOWi(depth);
-		SHOWi(bri_stack[depth]);
+		//STAFF;
+		//SHOWp(stack[depth]);
+		//SHOWp(curr);
+		//SHOWs(curr->str);
+		//SHOWi(depth);
+		//SHOWi(bri_stack[depth]);
 	//FIX SO THAT FIRST NODE IS STACK
 	//while(!tree26_isempty(stack[depth]) && bogus < 200000u)
 	while(depth >= 0 && bogus < 200000u)
@@ -335,15 +335,15 @@ void tree26_destroy(Tree26 * vic)
 		bogus += 1;
 		reset = FALSE;
 		//check each branch of the current node
-		SSEP;
+		//SSEP;
 		for(br_i = bri_stack[depth]; br_i < N_BRANCHES; ++br_i)
 		{
-			SHOWi(br_i);
-			SHOWp(curr->branch[br_i]);
+			//SHOWi(br_i);
+			//SHOWp(curr->branch[br_i]);
 			///case_0: branch has children - push node
 			if(curr->branch[br_i] )//&& (!tree26_isempty(curr->branch[br_i])))
 			{
-				SHOWs("Branch Found, depth increasing");
+				//SHOWs("Branch Found, depth increasing");
 				//save current stack level details
 				bri_stack[depth] = br_i;
 
@@ -359,8 +359,8 @@ void tree26_destroy(Tree26 * vic)
 		///case_1: branch is leaf - pop node
 		if(!reset && (br_i == N_BRANCHES))//&& tree26_isempty(curr))
 		{
-			SSEP;
-			SHOWs("Leaf Node Case: no reset, all branches NULL");
+			//SSEP;
+			//SHOWs("Leaf Node Case: no reset, all branches NULL");
 			//free node data
 			free(curr->str);
 			child_array = (*curr).branch;
@@ -388,15 +388,15 @@ void tree26_destroy(Tree26 * vic)
 				last->branch[lbi] = NULL;
 			}
 		}
-		SPACE;
-		STAFF;
-		SHOWp(stack[depth]);
-		SHOWp(curr);
-		SHOWs(curr->str);
-		SHOWi(depth);
-		SHOWi(bri_stack[depth]);
+		//SPACE;
+		//STAFF;
+		//SHOWp(stack[depth]);
+		//SHOWp(curr);
+		//SHOWs(curr->str);
+		//SHOWi(depth);
+		//SHOWi(bri_stack[depth]);
 	}
-	SPACE;	
+	//SPACE;	
 }
 
 
