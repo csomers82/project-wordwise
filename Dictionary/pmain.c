@@ -435,7 +435,7 @@ TreeQueue * tree26_bfs(Program * p)
 	TreeQueue * next			= NULL;
 	TreeQueue *	currQueue		= NULL;
 	Tree26 *	currNode		= NULL;
-	//int			depth			= 0;			
+	int			depth			= 0;			
 	int			index			= 0;
 
 	///EXECUTABLE STATEMENTS
@@ -494,12 +494,15 @@ TreeQueue * tree26_bfs(Program * p)
 			currQueue = next;
 		}
 
+
 		stop_address	= NULL;
 		currQueue		= search_q_head;
 		SSEP;
+		SPACE;
 		SHOWs("Evaluate Cycle");
 			SHOWp(search_q_head);
 			SHOWp(search_q_tail);
+			SSEP;
 		// evaluate whether a word has been found or to continue 
 		while(search_q_head && (search_q_head != stop_address))
 		{	
@@ -510,6 +513,7 @@ TreeQueue * tree26_bfs(Program * p)
 			SHOWp(search_q_head->node);
 			SHOWs(currNode->str);
 			SHOWp(search_q_head->next);
+			SHOWi((search_q_head != stop_address));
 			//==========================================
 			// case 1: node is a word 
 			//		:: pop search : push result 
@@ -531,14 +535,16 @@ TreeQueue * tree26_bfs(Program * p)
 			// case 2: node is incomplete 
 			//		:: pop search : push search
 			else {
-				SHOWs("push search");
+				//SHOWs("push search");
+				SHOWs("pop search");
 				search_q_head->next = NULL;
-				search_q_tail->next = search_q_head;	
+				//search_q_tail->next = search_q_head;	
+				//search_q_tail = search_q_tail->next;	
 				if(!stop_address)
 				{
-					stop_address = search_q_head;
-					SHOWp(stop_address);
-					SHOWi(1);
+				//	stop_address = search_q_head;
+				//	SHOWp(stop_address);
+				//	SHOWi(1);
 				}
 			}
 			search_q_head = next;
@@ -546,8 +552,7 @@ TreeQueue * tree26_bfs(Program * p)
 		}
 
 		SPACE;
-		SPACE;
-	} while(search_q_head);
+	} while(search_q_head && ++depth < 2);
 
 	return(result_q_head);
 }
