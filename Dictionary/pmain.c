@@ -431,12 +431,13 @@ TreeQueue * tree26_bfs(Program * p)
 	TreeQueue * result_q_head	= NULL;
 	TreeQueue * result_q_tail	= NULL;
 	TreeQueue *	tempQ			= NULL;
-	TreeQueue * stop_address	= NULL;
+	//TreeQueue * stop_address	= NULL;
 	TreeQueue * next			= NULL;
-	TreeQueue *	currQueue		= NULL;
+	//TreeQueue *	currQueue		= NULL;
 	Tree26 *	currNode		= NULL;
 	int			depth			= 0;			
 	int			index			= 0;
+	int			depth_max		= 1;
 
 	///EXECUTABLE STATEMENTS
 	// asserted that current tree node is valid
@@ -451,108 +452,57 @@ TreeQueue * tree26_bfs(Program * p)
 	search_q_head = tempQ;
 
 	//// Conduct breadth first search!
-	do {	
+	while (depth < depth_max) 
+	{ do {	
 		STAFF;
 		// reset loop vars
-		stop_address	= NULL;
-		currQueue		= search_q_head;
+		//stop_address	= NULL;
 		
-		SHOWs("Queue Cycle");
-		// queue new search nodes
-		while(currQueue)
+		//==========================================
+		// case 1: node is a word 
+		//		:: pop search : push result 
+		currNode = search_q_head->node;
+		if(	currNode->bool_complete_low ||
+			currNode->bool_complete_cap )
 		{
-			next = currQueue->next;
-			currNode = currQueue->node;
-			SHOWs(currNode->str);
-			if(!search_q_head)
-			{
-				for(index = 0; index < N_BRANCHES; ++index)
-				{
-					if(currNode->branch[index])
-					{
-						treeQueue_create(tempQ, currNode->branch[index]);
-						search_q_tail->next = tempQ;
-						search_q_tail = tempQ;
-						if(!search_q_head)
-							search_q_head = search_q_tail;	
-					}
-				}
-			}
-			else
-			{	for(index = 0; index < N_BRANCHES; ++index)
-				{
-					if(currNode->branch[index])
-					{
-						SHOWp(currNode->branch[index]);
-						SHOWc(97 + index);
-						treeQueue_create(tempQ, currNode->branch[index]);
-						search_q_tail->next = tempQ;
-						search_q_tail = tempQ;
-					}
-				}
-			}
-			currQueue = next;
-		}
-
-
-		stop_address	= NULL;
-		currQueue		= search_q_head;
-		SSEP;
-		SPACE;
-		SHOWs("Evaluate Cycle");
-			SHOWp(search_q_head);
-			SHOWp(search_q_tail);
-			SSEP;
-		// evaluate whether a word has been found or to continue 
-		while(search_q_head && (search_q_head != stop_address))
-		{	
-			currNode = search_q_head->node;
-			next = search_q_head->next;
+			SHOWs("push result");
+			treeQueue_create(tempQ, currNode);
+			if( result_q_tail)
+				result_q_tail->next = tempQ;
+			result_q_tail = tempQ;
+			if(!result_q_head)
+				result_q_head = result_q_tail;
 			
+			SHOWs("free head");
 			SHOWp(search_q_head);
-			SHOWp(search_q_head->node);
+			free(search_q_head);
+		}
+		// case 2: node is incomplete 
+		//		:: pop search : push children
+		else {
 			SHOWs(currNode->str);
-			SHOWp(search_q_head->next);
-			SHOWi((search_q_head != stop_address));
-			//==========================================
-			// case 1: node is a word 
-			//		:: pop search : push result 
-			if(	currNode->bool_complete_low ||
-				currNode->bool_complete_cap )
+			for(index = 0; index < N_BRANCHES; ++index)
 			{
-				SHOWs("push result");
-				treeQueue_create(tempQ, currNode);
-				if(result_q_tail)
-					result_q_tail->next = tempQ;
-				result_q_tail = tempQ;
-				if(!result_q_head)
-					result_q_head = result_q_tail;
-				
-				SHOWs("free head");
-				free(search_q_head);
-				SHOWp(search_q_head);
-			}
-			// case 2: node is incomplete 
-			//		:: pop search : push search
-			else {
-				//SHOWs("push search");
-				SHOWs("pop search");
-				search_q_head->next = NULL;
-				//search_q_tail->next = search_q_head;	
-				//search_q_tail = search_q_tail->next;	
-				if(!stop_address)
+				if(currNode->branch[index])
 				{
-				//	stop_address = search_q_head;
-				//	SHOWp(stop_address);
-				//	SHOWi(1);
+					SHOWc(97 + index);
+					treeQueue_create(tempQ, currNode->branch[index]);
+					search_q_tail->next = tempQ;
+					SHOWp(search_q_head->next);
+					SHOWp(search_q_tail->next);
+					search_q_tail = tempQ;
+					if(!search_q_head)
+						search_q_head = search_q_tail;	
 				}
 			}
-			search_q_head = next;
-			SPACE;
-		}
 
+		}
+		search_q_head = search_q_head->next;
 		SPACE;
-	} while(search_q_head && ++depth < 2);
+		
+	  } while(search_q_head);
+		depth += 1;
+	}
 
 	return(result_q_head);
 }
