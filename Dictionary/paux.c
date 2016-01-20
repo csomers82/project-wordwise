@@ -957,6 +957,40 @@ Text * build_box(int x,
 
 
 /************************************************************* 
+ *	Creates text object to be handled in printing
+ *	file:
+ *		paux.c	
+ *	args:
+ *		char *	string	- text that the object represents
+ *		char	fore	- foreground or standard if space character
+ *		Text *	tail	- end of the text queue or NULL
+ *	returns:
+ *		Text *	new		- ptr to new heap allocated Text obj
+ */
+Text * text_create(void * string, char fore, Text * tail)
+{
+	//CREATE NEW TEXT OBJECT
+	Text * new = malloc(sizeof(Text));
+	if(tail) tail->next = new;
+	
+	//INITIALIZE VALUES
+	new->string		= string;
+	new->foreground = fore;
+	new->attributes = NULL;
+	new->posX		= UNINIT;
+	new->posY		= UNINIT;
+	new->bool_nl	= TRUE;
+	new->hMargin	= STANDARD_H_MARGIN;
+	new->vMargin	= STANDARD_V_MARGIN;
+	new->next		= NULL;
+	new->persistant = FALSE;
+	return(new);
+}
+
+
+
+
+/************************************************************* 
  *	Allocates a program object to store important program 
  *	values
  *	file:
@@ -985,6 +1019,9 @@ Program * program_create()
 	new->wnd			= NULL;				// curses opaque window object
 	new->queue_head		= NULL;
 	new->queue_tail		= NULL;
+	new->results_array	= NULL;
+	new->results_index	= 0;
+	new->results_limit	= 0;
 	new->ebox_array		= NULL;
 	new->phase			= EDIT;
 	return(new);

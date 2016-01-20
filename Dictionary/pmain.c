@@ -23,39 +23,6 @@ int				GLOBAL_Y;
 
 
 /************************************************************* 
- *	Creates text object to be handled in printing
- *	file:
- *		pmain.c	
- *	args:
- *		char *	string	- text that the object represents
- *		char	fore	- foreground or standard if space character
- *		Text *	tail	- end of the text queue or NULL
- *	returns:
- *		Text *	new		- ptr to new heap allocated Text obj
- */
-Text * text_create(void * string, char fore, Text * tail)
-{
-	//CREATE NEW TEXT OBJECT
-	Text * new = malloc(sizeof(Text));
-	if(tail) tail->next = new;
-	
-	//INITIALIZE VALUES
-	new->string		= string;
-	new->foreground = fore;
-	new->attributes = NULL;
-	new->posX		= UNINIT;
-	new->posY		= UNINIT;
-	new->bool_nl	= TRUE;
-	new->hMargin	= STANDARD_H_MARGIN;
-	new->vMargin	= STANDARD_V_MARGIN;
-	new->next		= NULL;
-	new->persistant = FALSE;
-	return(new);
-}
-
-
-
-/************************************************************* 
  *	Initializes the curses library functionality and creates	
  *	a window that is WIDTH by HEIGHT in dimensions
  *	args:
@@ -412,6 +379,50 @@ void handle_char(Program * p)
 	}
 }
 
+
+
+/************************************************************* 
+ *	Create the text objects necessary to print the queued 
+ *	results from the created framework
+ *	file:
+ *		pmain.c
+ *	args:
+ *		Program * p:	Text *	results_array
+ *						int		results_index
+ *	returns:
+ *		void
+ */
+void results_grab(Program * p)
+{
+	////LOCAL VARIABLES
+	Text * resultTextQueue = NULL;
+	int scroll_reg_lines = SCROLL_END - SCROLL_BEG;
+	int min = p->results_limit;
+	int	index;
+
+	////EXECUTABLE STATEMENTS
+	//point start at index
+	resultTextQueue = p->results_array[p->results_index];
+	//ensure all of the necessary text objects are connected
+	min = (min < scroll_reg_lines) ? min : scroll_reg_lines;
+	for(index = p_results_index; index < (p->results_index + min - 1); ++index)
+	{
+		p->results_array[index]->next = p->results_array[index + 1]; 
+		text_toggle(p->results_array[index], TRUE);
+	}
+	resultTextQueue[index]->next = NULL; 
+
+	//sever end to fit scroll window
+	p->results_array[index]->next;
+	resultTextQueue->next = NULL;
+	
+
+	//copy text and attach object
+	p->queue_tail->next = resultTextQueue;
+	resultTextQueue;
+	return;
+}
+
 /************************************************************* 
  *	Creates a SLL of TreeQueue nodes that represents the first
  *	layer of words that can be found with a breadth first 
@@ -431,9 +442,6 @@ TreeQueue * tree26_bfs(Program * p)
 	TreeQueue * result_q_head	= NULL;
 	TreeQueue * result_q_tail	= NULL;
 	TreeQueue *	tempQ			= NULL;
-	//TreeQueue * stop_address	= NULL;
-	TreeQueue * next			= NULL;
-	//TreeQueue *	currQueue		= NULL;
 	Tree26 *	currNode		= NULL;
 	int			depth			= 0;			
 	int			index			= 0;
@@ -455,8 +463,6 @@ TreeQueue * tree26_bfs(Program * p)
 	while (depth < depth_max) 
 	{ do {	
 		STAFF;
-		// reset loop vars
-		//stop_address	= NULL;
 		
 		//==========================================
 		// case 1: node is a word 
@@ -505,6 +511,66 @@ TreeQueue * tree26_bfs(Program * p)
 	}
 
 	return(result_q_head);
+}
+
+/************************************************************* 
+ *	Takes the a TreeQueue list and puts the first one hundred 
+ *	search results into the lines of a text object
+ *	file:
+ *		pmain.c
+ *	args:
+ *		TreeQueue * resultList:	A queue of Tree26 node ptrs
+ *		int	* limit: total number of results returned
+ *	returns:
+ *		Text * newSet: list appended to program text queue
+ */
+Text * results_frame(TreeQueue * resultList, int * limit)
+{
+	////LOCAL VARIABLES
+	TreeQueue *	treeCurr		= resultList;// top of result queue
+	TreeQueue *	treeNext		= NULL;// next queue'd result node
+	Text **		results_array	= NULL;// previous text queue obj
+	Text *		tail			= NULL;// previous object to be created
+	char 		buffer[60]		= {'\0'};// character information
+	int			count			= 0;// limiting count of results returned
+	char *		colors			= "krgybmcw";
+
+	////EXECUTABLES STATEMENTS
+	// create results array
+	results_array = malloc(sizeof(Text*) * MAX_RESULTS);
+
+	// loop for all results and no more than MAX_RESULTS times 
+	while((treeCurr) && (count < MAX_RESULTS))
+	{
+		// create context for loop iteration
+		treeNext = treeCurr->next;
+
+		// allocate character data
+		memset(buffer, '\0', 60);
+		if(count < 10)	
+		{	sprintf(buffer, "| 0%1d |  %30s", count, treeCurr->node->str);
+		}
+		else 
+		{	sprintf(buffer, "| %2d |  %30s", count, treeCurr->node->str);
+		}
+
+		// create Text object
+		results_array[count] = text_create(strdup(buffer), colors[(count / 2 + 1) % 8], tail);
+
+		// update loop conditions for next pass
+		treeCurr = treeNext;
+		++count;
+	}
+
+	// clear result past MAX_RESULTS
+	while(treeCurr)
+	{
+		treeNext = treeCurr->next;
+		treeCurr->next = NULL;
+		free(treeCurr);
+		treeCurr = treeNext;
+	}
+	return(results_array);
 }
 
 
@@ -612,7 +678,15 @@ int main(int argc, char * argv[])
 			}
 			else if(cc == CTRL_UNDO		){ CHECKCODE(cc); }
 		}
-		candidates = tree26_bfs(program);
+		if(program->phase == EDIT)
+		{
+			results_clear(program->results_array);	
+			candidates = tree26_bfs(program);
+			program->results_array = results_frame(candidates, 
+									&program->results_limit);	
+			program->results_index = 0;
+			results_grab(program);
+		}
 	}
 	if( ERROR )
 	{	programErrorOut(ERROR);

@@ -52,6 +52,11 @@
 #define BOX_TRCH	L' '
 #define BOX_BLCH	L'|'
 #define BOX_BRCH	L'|'
+#define BFS_DEPTH	1
+#define MAX_RESULTS	100
+#define SCROLL_BEG	16
+#define SCROLL_END	(ROWS_PER_SCREEN - 8)
+
 
 /* CONTROL CODES */
 #define CTRL_ADDCHAR	( 1)
@@ -126,6 +131,17 @@ extern int GLOBAL_Y;
 
 /*============================================================*/
 /* MACROS	 */
+
+#define results_clear(_RESULTS_ARRAY) ({\
+			int _TEMP;\
+			for(_TEMP = 0; _TEMP < MAX_RESULTS; ++_TEMP)\
+			{	free(_RESULTS_ARRAY[_TEMP].string);\
+				free(_RESULTS_ARRAY[_TEMP].attributes);\
+				\
+			}\
+			free(_RESULTS_ARRAY);\
+		})
+
 #define treeQueue_create(tq_ptr, t26_ptr) ({\
 			TreeQueue * _NEWNODE	= malloc(sizeof(TreeQueue));\
 			_NEWNODE->node			= t26_ptr;\
@@ -195,7 +211,7 @@ extern int GLOBAL_Y;
 			fprintf(log		, errmsg);\
 		})
 
-#define DEBUG
+//#define DEBUG
 #define SHOWFILE
 #define COLOUR
 #ifdef DEBUG
@@ -288,6 +304,8 @@ typedef struct TreeQueue {
 	struct TreeQueue *	next;
 } TreeQueue;
 
+
+
 /****
  *	Text Struct: frames the position, color, and attributes of 
  *	curses text written to the screen 
@@ -336,6 +354,9 @@ typedef struct Program {
 	Text *		queue_tail;		// attachement end of text dequeue
 	Ebox *		ebox_array;		// ARRAY of edit boxes
 	int			ebox_active;	// index of selected edit box
+	Text **	    results_array;	// bfs results top scroll stack
+	int		    results_index;	// index of offset in result array
+	int		    results_limit;	// index of offset in result array
 	int			loop_continue;	// loop control variable
 	int			control_code;	// user input interpreted
 	wchar_t		user_input;		// user input raw
@@ -351,7 +372,7 @@ typedef struct Program {
 
 
 /************************************************************* 
- * test function 
+ * test function
  */
 void test_main(void);
 void test1(void);
@@ -360,6 +381,32 @@ void test3(void);
 void tree_test(void);
 void test4(void);
 
+
+/************************************************************* 
+ *	Create the text objects necessary to print the queued 
+ *	results from the created framework
+ *	file:
+ *		pmain.c
+ *	args:
+ *		Program * p:	Text *	results_array
+ *						int		results_index
+ *	returns:
+ *		void
+ */
+void results_grab(Program * p);
+
+/************************************************************* 
+ *	Takes the a TreeQueue list and puts the first one hundred 
+ *	search results into the lines of a text object
+ *	file:
+ *		pmain.c
+ *	args:
+ *		TreeQueue * resultList:	A queue of Tree26 node ptrs
+ *		int	* limit: total number of results returned
+ *	returns:
+ *		Text * results_array: ARRAY of first 100 returned res'
+ */
+Text * results_frame(TreeQueue * resultList, int * limit);
 
 
 
@@ -549,7 +596,7 @@ int input_eval(wchar_t userKey);
 /************************************************************* 
  *	Creates text object to be handled in printing
  *	file:
- *		pmain.c	
+ *		paux.c	
  *	args:
  *		void *	string	- text that the object represents
  *		char	fore	- foreground or standard if space character
