@@ -608,7 +608,7 @@ void test4()
 	program->node	= program->tree; 
 	SHOWp(program->node);
 	//TEST PROCESS
-	for(index = 0; index < 2; ++index)
+	for(index = 0; index < 3; ++index)
 	{
 		printf("\ninput char: ");
 		program->user_input = (wchar_t) getc(stdin);
@@ -717,7 +717,7 @@ void test2()
 	
 	getch();
 
-	text_manager(&tx1);
+	text_manager(&tx1, &tx6);
 	printw("waaat");
 }
  
@@ -736,7 +736,7 @@ void test1()
 	SHOWp(new);	
 
 	text_toggle(new, TRUE );
-	text_destroy(new);
+	text_destroy(&new);
 	if(ERROR)
 	{ 
 		printf("sizeof(Text) = %ld\n", sizeof(Text));
@@ -744,7 +744,7 @@ void test1()
 		fprintf(stderr, "Error: sizeof error.\n");
 	}
 	text_toggle(new, FALSE );
-	text_destroy(new);
+	text_destroy(&new);
 	return;
 }
 
@@ -987,8 +987,36 @@ Text * text_create(void * string, char fore, Text * tail)
 	return(new);
 }
 
-
-
+/************************************************************* 
+ *	Takes a ptr at a text object ptr and frees the data. 
+ *	file:
+ *		paux.c	
+ *	args:
+ *		Text **	vic	- node of the text queue 
+ */
+void text_destroy(Text ** vic) 
+{	
+	// once was a macro and now is not.
+	
+	//if( sizeof(textPtr) == sizeof(void*) ) 
+	//{
+	Text * textPtr = *vic;
+	if( textPtr->persistant == FALSE ) 
+	{
+		free(textPtr->string);
+		free(textPtr->attributes);
+		textPtr->string = NULL;
+		textPtr->attributes = NULL;
+		textPtr->next = NULL;
+		free(*vic);
+		*vic = NULL;
+	}
+	//}
+	//else {
+	//	ERROR |= EC07;
+	//}
+	return;	
+}
 
 /************************************************************* 
  *	Allocates a program object to store important program 

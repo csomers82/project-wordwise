@@ -72,20 +72,30 @@
 #define CTRL_UNDO		(-4)
 
 /* DIAGNOSTICS */
-#define CHECKS
+//#define CHECKS
 #ifdef CHECKS
+	#define CHECKTXT(x) ({\
+		move(20,20);\
+		wscrl(WIN, -1);\
+		printw("t. %s = \"%s\"", #x, x);\
+	})
+	#define CHECKPTR(x) ({\
+		move(20,20);\
+		wscrl(WIN, -1);\
+		printw("&. %s = %p", #x, x);\
+	})
 	#define CHECKCODE(x) ({\
 		move(20,20);\
 		wscrl(WIN, -1);\
-		printw("%s = %d", #x, x);\
+		printw(".. %s = %d", #x, x);\
 	})
 	#define CHECKSTACK(stack, i) ({\
 		move(20,20);\
 		wscrl(WIN, -1);\
 		if(stack[i])\
-		printw("%s[%2d] = %p:(%s)", #stack, i, stack[i], stack[i]->str );\
+		printw(":. %s[%2d] = %p:(%s)", #stack, i, stack[i], stack[i]->str );\
 		else\
-		printw("%s[%2d] = %p", #stack, i, stack[i]);\
+		printw(":. %s[%2d] = %p", #stack, i, stack[i]);\
 	})
 #else
 	#define CHECKCODE(x) 
@@ -120,7 +130,7 @@
 #define EC18 8388608
 
 enum EboxNames {WORKSPACE, PARAMETERS};
-enum Phase {EDIT, SELECT, HELP};
+enum Phase {EDIT, CONTROL, SELECT, HELP};
 
 extern unsigned int ERROR;
 extern unsigned int ERRQUIT;
@@ -135,11 +145,11 @@ extern int GLOBAL_Y;
 #define results_clear(_RESULTS_ARRAY) ({\
 			int _TEMP;\
 			for(_TEMP = 0; _TEMP < MAX_RESULTS; ++_TEMP)\
-			{	free(_RESULTS_ARRAY[_TEMP].string);\
-				free(_RESULTS_ARRAY[_TEMP].attributes);\
+			{	free(_RESULTS_ARRAY[_TEMP]->string);\
+				free(_RESULTS_ARRAY[_TEMP]->attributes);\
+				free(_RESULTS_ARRAY[_TEMP]);\
 				\
 			}\
-			free(_RESULTS_ARRAY);\
 		})
 
 #define treeQueue_create(tq_ptr, t26_ptr) ({\
@@ -185,24 +195,6 @@ extern int GLOBAL_Y;
 			}\
 			else {\
 				ERROR |= EC08;\
-			}\
-		})
-
-#define text_destroy(textPtr) ({\
-			if( sizeof(textPtr) == sizeof(void*) ) \
-			{\
-				if( textPtr->persistant == FALSE ) \
-				{\
-					free(textPtr->string);\
-					free(textPtr->attributes);\
-					textPtr->string = NULL;\
-					textPtr->attributes = NULL;\
-					textPtr->next = NULL;\
-					free(textPtr);\
-				}\
-			}\
-			else {\
-				ERROR |= EC07;\
 			}\
 		})
 
@@ -381,6 +373,17 @@ void test3(void);
 void tree_test(void);
 void test4(void);
 
+/************************************************************* 
+ *	Creates a Text pointer array for program use.
+ *	file:
+ *		pmain.c
+ *	args:
+ *
+ *	returns:
+ *		Text ** results_array: ARRAY of first 100 returned res'
+ */
+Text ** results_init(void);
+
 
 /************************************************************* 
  *	Create the text objects necessary to print the queued 
@@ -393,7 +396,7 @@ void test4(void);
  *	returns:
  *		void
  */
-void results_grab(Program * p);
+void results_queue_text(Program * p);
 
 /************************************************************* 
  *	Takes the a TreeQueue list and puts the first one hundred 
@@ -401,12 +404,12 @@ void results_grab(Program * p);
  *	file:
  *		pmain.c
  *	args:
+ *		Program * p: Will have the necessary value scope
  *		TreeQueue * resultList:	A queue of Tree26 node ptrs
- *		int	* limit: total number of results returned
  *	returns:
  *		Text * results_array: ARRAY of first 100 returned res'
  */
-Text * results_frame(TreeQueue * resultList, int * limit);
+Text ** results_setup(Program * p, TreeQueue * resultList);
 
 
 
@@ -618,7 +621,17 @@ Text * text_create(void * string, char fore, Text * tail);
  */
 void text_print(Text * t);
 
-/* void text_destroy(text): MACRO: frees single text object */
+
+/************************************************************* 
+ *	Takes a ptr at a text object ptr and frees the data. 
+ *	file:
+ *		paux.c	
+ *	args:
+ *		Text **	vic	- node of the text queue 
+ */
+void text_destroy(Text ** vic);
+
+
 /* void text_position(text, x, y): MACRO: assigns text coords */
 
 
@@ -631,9 +644,10 @@ void text_print(Text * t);
  *	file:
  *		pmain.c	
  *	args:
- *		Text *	outputQueue	- node of the text queue 
+ *		Text ** tHead	- ptr to the head of the queue
+ *		Text **	tTail	- ptr to the tail of the queue
  */
-void text_manager(Text ** t);
+void text_manager(Text ** tHead, Text ** tTail);
 
 /************************************************************* 
  *	Takes the text queue and clears all of its memort for
