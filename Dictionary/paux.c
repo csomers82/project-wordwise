@@ -14,6 +14,7 @@
 //#define DN_WORDBANK_FN "copy-american-english"
 //#define DN_WORDBANK_FN "macaroni"
 #define DN_WORDBANK_FN "copy-american-english-abr"
+//#define DN_WORDBANK_FN "copy-american-english-edit"
 //#define DN_WORDBANK_FN "ababc"
 
 #define TRUE 1
@@ -1203,6 +1204,48 @@ int input_eval(wchar_t userKey)
 	return CTRL_DONOTHING;
 }
 
+/************************************************************* 
+ *	Creates a Text pointer array for program use.
+ *	file:
+ *		paux.c
+ *	args:
+ *
+ *	returns:
+ *		Text ** results_array: ARRAY of first 100 returned res'
+ */
+Text ** results_init(void)
+{
+	Text ** results_array = malloc(sizeof(Text*) * MAX_RESULTS);
+	return(results_array);
+}
+
+/************************************************************* 
+ *	A function that frees all of the memory that was assoc-
+ *	-iated with the previous BFS. It DOES NOT free the pointer
+ *	to the 'results_array'.
+ *	file:
+ *		paux.c
+ *	args:
+ *		Text **	results_ptr_array	- ptr array of vics
+ *		int		limit	- how many results there are to clear
+ *	returns:
+ *		void
+ */
+void results_clear(Text ** results_ptr_array, int limit) 
+{
+	int index;
+	for(index = 0; index < MAX_RESULTS; ++index)
+	{	
+		if(results_ptr_array[index])
+		{
+			free(results_ptr_array[index]->string);
+			free(results_ptr_array[index]->attributes);
+			free(results_ptr_array[index]);
+			results_ptr_array[index] = NULL;
+		}
+	}
+	return;
+}
 
 
 
@@ -1255,7 +1298,7 @@ int programErrorOut(int ERRORCOPY)
 	fprintf(log, "\n");
 
 	////PRINT FUNCTION ERRORS
-	if(ERRORCOPY  & (EC01 | EC02 | EC03)) 
+	if(ERRORCOPY  & (EC01 | EC02 | EC03 | EC0E | EC0F)) 
 	{	
 		fprintf(log, "%s%s\n", b, sect1);
 		if(ERRORCOPY & EC01)
@@ -1266,6 +1309,12 @@ int programErrorOut(int ERRORCOPY)
 		}
 		if(ERRORCOPY & EC03)
 		{	LOG(log, "EC03: Unrecognized attribute identifier value.\n");
+		}
+		if(ERRORCOPY & EC0E)
+		{	LOG(log, "EC0E: results_manager: result index < 0\n");
+		}
+		if(ERRORCOPY & EC0F)
+		{	LOG(log, "EC0F: results_manager: (beg + index + limit) > SCROLL_END\n");
 		}
 	}
 	////TEXT DESTROY MACRO ERRORS
@@ -1291,7 +1340,7 @@ int programErrorOut(int ERRORCOPY)
 		{	LOG(log, "EC09: text_toggle: invalid [bool ] toggle value\n");
 		}
 	}
-	if(ERRORCOPY  & (EC0A | EC0B | EC0C | EC0D)) 
+	if(ERRORCOPY  & (EC0A | EC0B | EC0C | EC0D | EC10)) 
 	{
 		fprintf(log, "%s%s\n", b, sect3);
 		if(ERRORCOPY & EC0A)
@@ -1305,6 +1354,9 @@ int programErrorOut(int ERRORCOPY)
 		}
 		if(ERRORCOPY & EC0D)
 		{	LOG(log, "EC0D: main: scrollok program error\n");
+		}
+		if(ERRORCOPY & EC10)
+		{	LOG(log, "EC10: results_setup: NULL \"results_array\" argument\n");
 		}
 	}
 	fclose(log);

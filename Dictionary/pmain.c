@@ -395,67 +395,6 @@ void handle_char(Program * p)
 }
 
 
-
-/************************************************************* 
- *	Create the text objects necessary to print the queued 
- *	results from the created framework
- *	file:
- *		pmain.c
- *	args:
- *		Program * p:	Text *	results_array
- *						int		results_index
- *	returns:
- *		void
- */
-void results_queue_text(Program * p)
-{
-	
-	////LOCAL VARIABLES
-	Text * resultTextQueue = NULL;
-	int scroll_reg_lines = SCROLL_END - SCROLL_BEG;
-	int min = p->results_limit;
-	int	index;
-
-	////EXECUTABLE STATEMENTS
-	if(!p->results_limit)
-	{
-		p->queue_tail = text_create( strdup("(no results)"), 
-									 'r', 
-									 p->queue_tail);
-		if(!p->queue_head)
-			p->queue_head = p->queue_tail;
-		text_position(p->queue_tail, SCROLL_BEG, 8);
-		return;
-	}
-	//point start at index
-	resultTextQueue = p->results_array[p->results_index];
-	//ensure all of the necessary text objects are connected
-	min = (min < scroll_reg_lines) ? min : scroll_reg_lines;
-	for(index = p->results_index; index < (p->results_index + min - 1); ++index)
-	{
-		p->results_array[index]->next = p->results_array[index + 1]; 
-		text_toggle(p->results_array[index], TRUE);
-		text_position(p->results_array[index], SCROLL_BEG + (index - p->results_index), 16);
-	}
-
-	//sever end to fit scroll window
-	p->results_array[index]->next = NULL;
-	//resultTextQueue[index]->next = NULL; 
-	resultTextQueue->next = NULL;
-	
-
-	//copy text and attach object
-	if(!p->queue_tail)
-	{
-		p->queue_head = resultTextQueue;
-	}
-	else {
-		p->queue_tail->next = resultTextQueue;
-	}
-	//resultTextQueue;
-	return;
-}
-
 /************************************************************* 
  *	Creates a SLL of TreeQueue nodes that represents the first
  *	layer of words that can be found with a breadth first 
@@ -474,13 +413,14 @@ TreeQueue * tree26_bfs(Program * p)
 	TreeQueue *	search_q_tail	= NULL;
 	TreeQueue * result_q_head	= NULL;
 	TreeQueue * result_q_tail	= NULL;
+	TreeQueue * grand_rq_head	= NULL;
+	TreeQueue * grand_rq_tail	= NULL;
 	TreeQueue *	tempQ			= NULL;
 	TreeQueue * next			= NULL;
 	Tree26 *	currNode		= NULL;
 	int			depth			= 0;			
 	int			index			= 0;
 	int			depth_max		= 1;
-	int			first			= TRUE;
 
 	///EXECUTABLE STATEMENTS
 	// asserted that current tree node is valid
@@ -493,6 +433,10 @@ TreeQueue * tree26_bfs(Program * p)
 	treeQueue_create(tempQ, p->node);
 	search_q_tail = tempQ;
 	search_q_head = tempQ;
+	currNode = search_q_head->node;
+	depth_max += (currNode->bool_complete_low ||
+			currNode->bool_complete_cap ) ? 1 : 0 ;
+	
 
 	//// Conduct breadth first search!
 	while (depth < depth_max) 
@@ -504,8 +448,7 @@ TreeQueue * tree26_bfs(Program * p)
 		//		:: pop search : push result 
 		currNode = search_q_head->node;
 		if((currNode->bool_complete_low ||
-			currNode->bool_complete_cap ) &&
-			!first)
+			currNode->bool_complete_cap ))
 		{
 			SHOWs("push result");
 			treeQueue_create(tempQ, currNode);
@@ -543,10 +486,36 @@ TreeQueue * tree26_bfs(Program * p)
 		search_q_head = NULL;
 		SHOWp(search_q_head);
 		search_q_head = next;
-		first = FALSE;
 		
 	  } while(search_q_head);
 		depth += 1;
+		
+		/* For each depth, take the current queue and save it
+		 * to the grand total results. Then, take the previous 
+		 * result queue and append copies to the search queue 
+		 * to continue the search from those word nodes */
+		// save results ::
+		if(!grand_rq_head) 
+			grand_rq_head = result_q_head;
+		if(!grand_rq_tail)
+			grand_rq_tail = result_q_tail;
+		else
+			grand_rq_tail->next = result_q_head;
+		// append results to search::
+		if(depth < depth_max)
+		{
+			if(search_q_tail)
+			{
+				search_q_tail->next = result_q_head;
+			}
+			else if(!search_q_head)
+			{
+				search_q_head = result_q_head;
+				search_q_tail = result_q_tail;
+			}
+			result_q_head = NULL;
+			result_q_tail = NULL;
+		}
 	}
 
 	return(result_q_head);
@@ -572,15 +541,17 @@ Text ** results_setup(Program * p, TreeQueue * resultList)
 	Text *		tail			= NULL;// previous object to be created
 	char 		buffer[60]		= {'\0'};// character information
 	int			count			= 0;// limiting count of results returned
-	char *		colors			= "krgybmcw";
+	char *		colors			= "rgybm";
+	int			ncolors			= 5;
 
 	////EXECUTABLES STATEMENTS
 	results_array = p->results_array;
-	if(!resultList)
+	/*if(p->results_limit && !resultList)
 	{
+		//not an error!!!!
+		ERROR |= EC10;// no result array ptr!
 		return(results_array);
-	}
-	tail = p->queue_tail;
+	}*/
 
 	// loop for all results and no more than MAX_RESULTS times 
 	while((treeCurr) && (count < MAX_RESULTS))
@@ -601,13 +572,16 @@ Text ** results_setup(Program * p, TreeQueue * resultList)
 
 		// create Text object
 		results_array[count] = text_create(	strdup(buffer), 
-											colors[(count / 2 + 1) % 8], 
+											colors[(count / 2 + 1) % ncolors], 
 											tail);
 
 		// update loop conditions for next pass
+		free(treeCurr);
+		//tail = results_array[count];
 		treeCurr = treeNext;
 		++count;
 	}
+
 
 	/* free the remaining TreeQueue search results	*
 	 * (discard all past: count = MAX_RESULTS)		*/
@@ -620,29 +594,77 @@ Text ** results_setup(Program * p, TreeQueue * resultList)
 	}
 
 	// should ensure that only *limit result will be read
-	p->results_limit = count;
-
+	p->results_index = 0;
+	p->results_limit = (count > SCROLL_SIZE_T) ? 
+							(SCROLL_SIZE_T) :
+							(count <= 0) ? 
+								0 : 
+								count;
 	return(results_array);
 }
 
+
+
 /************************************************************* 
- *	Creates a Text pointer array for program use.
+ *	Handles the text that is related to results. It is handled
+ *	differently for effeciency and ease of separation.
  *	file:
  *		pmain.c
  *	args:
- *
+ *		Program * program: contains:
+ *			Text **	results_array	- to be printed
+ *			int		results_index	- when to start print
+ *			int		results_limit	- when to end print
  *	returns:
- *		Text ** results_array: ARRAY of first 100 returned res'
+ *		void
  */
-Text ** results_init(void)
+void results_manager(Program * p)
 {
-	Text ** results_array = malloc(sizeof(Text*) * MAX_RESULTS);
-	int counter;
-	for(counter = 0; counter < MAX_RESULTS; ++counter)
+	// LOCAL REFERENCES
+	Text ** txt_ptr_array = p->results_array;
+	int limit = p->results_limit; 
+	int index = p->results_index; 
+	int offset;
+
+	/* on the circumstance that there are no results,	*
+	 * print the substitute message to the screen.		*/
+	if(!limit)
 	{
-		results_array[counter] = NULL;
+		Text * no_results = text_create(strdup(	"(no results)"), 
+												'r', 
+												NULL);
+		move(SCROLL_BEG, 0);
+		text_position(no_results, SCROLL_BEG, 16);
+		for(offset = SCROLL_BEG; offset < SCROLL_END; ++offset)
+		{
+			deleteln();
+		}
+		text_print(no_results);
+		text_destroy(&no_results);
+		return;
 	}
-	return(results_array);
+	else if(((SCROLL_BEG + index + limit) > SCROLL_END) ||
+			(index < 0))
+	{	
+		//there is a programmer error allowing faulty indexing
+		if(index < 0)	ERROR |= EC0E;
+		else			ERROR |= EC0F;
+		return;
+	}
+	
+	//point start at index and print (limit) results
+	for(offset = index; offset < (limit + index); ++offset)
+	{
+		text_position(	txt_ptr_array[offset], 
+						SCROLL_BEG + offset, 
+						16);
+		text_print(	txt_ptr_array[offset]);
+	}
+	while(offset++ < (1 + SCROLL_SIZE_T))
+	{
+		deleteln();	
+	}
+	return;
 }
 
 
@@ -753,11 +775,7 @@ int main(int argc, char * argv[])
 			else if(cc == CTRL_EXIT		)
 			{ 
 				program->loop_continue = FALSE;	
-				if(*program->results_array) 
-				{
-					results_clear(program->results_array);
-				}
-				program->phase = CONTROL; 
+				program->phase = CONTROL;
 			}
 			else if(cc == CTRL_UNDO		){ CHECKCODE(cc); }
 		}
@@ -766,10 +784,11 @@ int main(int argc, char * argv[])
 			// clear the old result (if .)
 			if(program->results_limit)
 			{	
-				results_clear(program->results_array);	
+				results_clear(	program->results_array, 
+								program->results_limit);	
 			}
 			// search for new results (if .)
-			if(program->node)
+			if(!ERROR && program->node)
 			{
 				candidates = tree26_bfs(program);
 				program->results_array = results_setup(	program,
@@ -779,8 +798,10 @@ int main(int argc, char * argv[])
 				program->results_limit = 0;
 				program->results_index = UNINIT;
 			}
-			// create display needed
-			results_queue_text(program);
+		}
+		if(!ERROR)
+		{	
+			results_manager(program);
 		}
 	}
 	if( ERROR )
@@ -792,6 +813,10 @@ int main(int argc, char * argv[])
 	endwin();
 
 	clear_program:
+	if(program->results_limit)	
+	{	results_clear(	program->results_array, 
+						program->results_limit);	
+	}
 	free(program->results_array);
 	text_clear_all(program->queue_head);
 	tree26_destroy(program->tree);

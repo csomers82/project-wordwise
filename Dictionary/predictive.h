@@ -56,6 +56,7 @@
 #define MAX_RESULTS	100
 #define SCROLL_BEG	16
 #define SCROLL_END	(ROWS_PER_SCREEN - 8)
+#define SCROLL_SIZE_T (SCROLL_END - SCROLL_BEG)
 
 
 /* CONTROL CODES */
@@ -141,15 +142,6 @@ extern int GLOBAL_Y;
 
 /*============================================================*/
 /* MACROS	 */
-
-#define results_clear(_RESULTS_ARRAY) ({\
-			int _TEMP;\
-			for(_TEMP = 0; _TEMP < MAX_RESULTS; ++_TEMP)\
-			{	free(_RESULTS_ARRAY[_TEMP]->string);\
-				free(_RESULTS_ARRAY[_TEMP]->attributes);\
-				free(_RESULTS_ARRAY[_TEMP]);\
-			}\
-		})
 
 #define treeQueue_create(tq_ptr, t26_ptr) ({\
 			TreeQueue * _NEWNODE	= malloc(sizeof(TreeQueue));\
@@ -279,7 +271,7 @@ typedef struct _win_st WINDOW;
  *	MsgQueue Struct: is a basic LINKEDLIST (SLL) with a char*.
  *	It is used in the extraction of text from the dictionary
  *	input file.
- */
+ */ 
 typedef struct MsgQueue {
 	char *				line;
 	struct MsgQueue *	next;
@@ -373,9 +365,39 @@ void tree_test(void);
 void test4(void);
 
 /************************************************************* 
- *	Creates a Text pointer array for program use.
+ *	A function that frees all of the memory that was assoc-
+ *	-iated with the previous BFS. It DOES NOT free the pointer
+ *	to the 'results_array'.
+ *	file:
+ *		paux.c
+ *	args:
+ *		Text **	results_ptr_array	- ptr array of vics
+ *		int		limit	- how many results there are to clear
+ *	returns:
+ *		void
+ */
+void results_clear(Text ** results_ptr_array, int limit); 
+
+
+/************************************************************* 
+ *	Handles the text that is related to results. It is handled
+ *	differently for effeciency and ease of separation.
  *	file:
  *		pmain.c
+ *	args:
+ *		Program * program: contains:
+ *			Text **	results_array	- to be printed
+ *			int		results_index	- when to start print
+ *			int		results_limit	- when to end print
+ *	returns:
+ *		void
+ */
+void results_manager(Program * program);
+
+/************************************************************* 
+ *	Creates a Text pointer array for program use.
+ *	file:
+ *		paux.c
  *	args:
  *
  *	returns:
@@ -384,18 +406,6 @@ void test4(void);
 Text ** results_init(void);
 
 
-/************************************************************* 
- *	Create the text objects necessary to print the queued 
- *	results from the created framework
- *	file:
- *		pmain.c
- *	args:
- *		Program * p:	Text *	results_array
- *						int		results_index
- *	returns:
- *		void
- */
-void results_queue_text(Program * p);
 
 /************************************************************* 
  *	Takes the a TreeQueue list and puts the first one hundred 
@@ -608,7 +618,7 @@ int input_eval(wchar_t userKey);
  */
 Text * text_create(void * string, char fore, Text * tail);
 
-
+ 
 /************************************************************* 
  *	Takes a text object and executes the screen printing. This
  *	is a single instance of a print function and calls curses

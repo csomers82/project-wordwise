@@ -114,7 +114,7 @@ Tree26 * tree26_insert(	Tree26 * root,
 					tree->bool_complete_low = TRUE;
 					//free(tree->str);
 					//tree->str = (char *) savee;
-					printf("Existing word validated.\n");
+					//printf("Existing word validated.\n");
 					return(root);
 				}
 				else 
