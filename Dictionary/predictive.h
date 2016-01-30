@@ -148,7 +148,6 @@ extern int GLOBAL_Y;
 			{	free(_RESULTS_ARRAY[_TEMP]->string);\
 				free(_RESULTS_ARRAY[_TEMP]->attributes);\
 				free(_RESULTS_ARRAY[_TEMP]);\
-				\
 			}\
 		})
 
